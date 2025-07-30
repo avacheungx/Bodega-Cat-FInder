@@ -1,0 +1,81 @@
+from flask import Flask, jsonify
+from flask_cors import CORS
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+from flask_jwt_extended import JWTManager
+from flask_bcrypt import Bcrypt
+from dotenv import load_dotenv
+import os
+
+# Load environment variables
+load_dotenv()
+
+# Initialize extensions
+db = SQLAlchemy()
+migrate = Migrate()
+jwt = JWTManager()
+bcrypt = Bcrypt()
+
+# Import models to register them with SQLAlchemy
+from models import *
+
+def create_app():
+    app = Flask(__name__)
+    
+    # Configuration
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.getenv('DATABASE_URL', 'sqlite:///bodega_cats.db')
+    app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+    app.config['JWT_SECRET_KEY'] = os.getenv('JWT_SECRET_KEY', 'dev-secret-key')
+    app.config['UPLOAD_FOLDER'] = os.getenv('UPLOAD_FOLDER', 'uploads')
+    app.config['MAX_CONTENT_LENGTH'] = int(os.getenv('MAX_CONTENT_LENGTH', 16777216))
+    
+    # Initialize extensions with app
+    db.init_app(app)
+    migrate.init_app(app, db)
+    jwt.init_app(app)
+    bcrypt.init_app(app)
+    
+    # Enable CORS
+    CORS(app, resources={r"/api/*": {"origins": "*"}})
+    
+    # Import and register blueprints
+    from routes.auth import auth_bp, init_bcrypt
+    from routes.cats import cats_bp
+    from routes.bodegas import bodegas_bp
+    from routes.search import search_bp
+    from routes.reviews import reviews_bp
+    from routes.users import users_bp
+    
+    # Initialize auth bcrypt
+    init_bcrypt(app)
+    
+    app.register_blueprint(auth_bp, url_prefix='/api/auth')
+    app.register_blueprint(cats_bp, url_prefix='/api/cats')
+    app.register_blueprint(bodegas_bp, url_prefix='/api/bodegas')
+    app.register_blueprint(search_bp, url_prefix='/api/search')
+    app.register_blueprint(reviews_bp, url_prefix='/api/reviews')
+    app.register_blueprint(users_bp, url_prefix='/api/users')
+    
+    # Health check endpoint
+    @app.route('/api/health')
+    def health_check():
+        return jsonify({'status': 'healthy', 'message': 'Bodega Cat Finder API is running'})
+    
+    # Error handlers
+    @app.errorhandler(404)
+    def not_found(error):
+        return jsonify({'error': 'Not found'}), 404
+    
+    @app.errorhandler(500)
+    def internal_error(error):
+        return jsonify({'error': 'Internal server error'}), 500
+    
+    return app
+
+# Create app instance
+app = create_app()
+
+if __name__ == '__main__':
+    with app.app_context():
+        db.create_all()
+    app.run(debug=True, host='0.0.0.0', port=5000) 
