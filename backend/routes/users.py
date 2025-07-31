@@ -5,11 +5,15 @@ from sqlalchemy import desc
 
 users_bp = Blueprint('users', __name__)
 
-@users_bp.route('/saved/cats', methods=['GET'])
+@users_bp.route('/test', methods=['GET'])
+def test_users():
+    return jsonify({'message': 'Users blueprint is working'}), 200
+
+@users_bp.route('/savedcats', methods=['GET'])
 @jwt_required()
 def get_saved_cats():
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
         
@@ -34,7 +38,7 @@ def get_saved_cats():
                 'is_friendly': saved_cat.cat.is_friendly,
                 'rating': saved_cat.cat.rating,
                 'review_count': saved_cat.cat.review_count,
-                'primary_photo': next((photo.filename for photo in saved_cat.cat.photos if photo.is_primary), None),
+                'primary_photo': next((photo.filename for photo in saved_cat.cat.photos if photo.is_primary), None) if saved_cat.cat.photos else None,
                 'saved_at': saved_cat.created_at.isoformat()
             } for saved_cat in saved_cats.items if saved_cat.cat.is_active],
             'pagination': {
@@ -48,11 +52,11 @@ def get_saved_cats():
     except Exception as e:
         return jsonify({'error': 'Internal server error'}), 500
 
-@users_bp.route('/saved/bodegas', methods=['GET'])
+@users_bp.route('/savedbodegas', methods=['GET'])
 @jwt_required()
 def get_saved_bodegas():
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
         
@@ -74,7 +78,7 @@ def get_saved_bodegas():
                 'review_count': saved_bodega.bodega.review_count,
                 'cat_count': saved_bodega.bodega.cat_count,
                 'is_verified': saved_bodega.bodega.is_verified,
-                'primary_photo': next((photo.filename for photo in saved_bodega.bodega.photos if photo.is_primary), None),
+                'primary_photo': next((photo.filename for photo in saved_bodega.bodega.photos if photo.is_primary), None) if saved_bodega.bodega.photos else None,
                 'saved_at': saved_bodega.created_at.isoformat()
             } for saved_bodega in saved_bodegas.items],
             'pagination': {
@@ -92,7 +96,7 @@ def get_saved_bodegas():
 @jwt_required()
 def get_recently_viewed():
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
         
@@ -120,7 +124,7 @@ def get_recently_viewed():
                     'is_friendly': item.cat.is_friendly,
                     'rating': item.cat.rating,
                     'review_count': item.cat.review_count,
-                    'primary_photo': next((photo.filename for photo in item.cat.photos if photo.is_primary), None),
+                    'primary_photo': next((photo.filename for photo in item.cat.photos if photo.is_primary), None) if item.cat.photos else None,
                     'viewed_at': item.viewed_at.isoformat()
                 })
             elif item.bodega_id and item.bodega:
@@ -138,7 +142,7 @@ def get_recently_viewed():
                     'review_count': item.bodega.review_count,
                     'cat_count': item.bodega.cat_count,
                     'is_verified': item.bodega.is_verified,
-                    'primary_photo': next((photo.filename for photo in item.bodega.photos if photo.is_primary), None),
+                    'primary_photo': next((photo.filename for photo in item.bodega.photos if photo.is_primary), None) if item.bodega.photos else None,
                     'viewed_at': item.viewed_at.isoformat()
                 })
         
@@ -159,7 +163,7 @@ def get_recently_viewed():
 @jwt_required()
 def get_recently_viewed_cats():
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 20, type=int)
         
@@ -187,7 +191,7 @@ def get_recently_viewed_cats():
                 'is_friendly': item.cat.is_friendly,
                 'rating': item.cat.rating,
                 'review_count': item.cat.review_count,
-                'primary_photo': next((photo.filename for photo in item.cat.photos if photo.is_primary), None),
+                'primary_photo': next((photo.filename for photo in item.cat.photos if photo.is_primary), None) if item.cat.photos else None,
                 'viewed_at': item.viewed_at.isoformat()
             } for item in recently_viewed_cats.items if item.cat and item.cat.is_active],
             'pagination': {
@@ -205,7 +209,7 @@ def get_recently_viewed_cats():
 @jwt_required()
 def get_user_stats():
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         # Count saved cats
         saved_cats_count = SavedCat.query.filter_by(user_id=user_id).count()
@@ -236,7 +240,7 @@ def get_user_stats():
 @jwt_required()
 def clear_recently_viewed():
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         RecentlyViewed.query.filter_by(user_id=user_id).delete()
         db.session.commit()

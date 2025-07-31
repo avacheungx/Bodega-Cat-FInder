@@ -32,9 +32,10 @@ export const RecentlyViewedPage: React.FC = () => {
     setLoading(true);
     try {
       const response = await axios.get('/api/users/recently-viewed');
-      setRecentItems(response.data.recently_viewed);
+      setRecentItems(response.data.recently_viewed || []);
     } catch (error) {
       toast.error('Failed to load recently viewed items');
+      setRecentItems([]);
     } finally {
       setLoading(false);
     }
@@ -105,7 +106,7 @@ export const RecentlyViewedPage: React.FC = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Recently Viewed</h1>
           <p className="text-gray-600">Your browsing history of cats and bodegas</p>
         </div>
-        {recentItems.length > 0 && (
+        {recentItems && recentItems.length > 0 && (
           <button
             onClick={clearRecentlyViewed}
             className="px-4 py-2 text-sm text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg"
@@ -115,7 +116,7 @@ export const RecentlyViewedPage: React.FC = () => {
         )}
       </div>
 
-      {recentItems.length === 0 ? (
+      {!recentItems || recentItems.length === 0 ? (
         <div className="text-center py-12">
           <Clock className="w-16 h-16 text-gray-300 mx-auto mb-4" />
           <h3 className="text-lg font-medium text-gray-900 mb-2">No recently viewed items</h3>

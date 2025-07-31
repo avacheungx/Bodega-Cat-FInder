@@ -1,5 +1,5 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from models import db, Bodega, Cat, BodegaPhoto, SavedBodega, RecentlyViewed, Review
 from marshmallow import Schema, fields, ValidationError
 from sqlalchemy import func
@@ -72,15 +72,15 @@ def get_bodega(bodega_id):
         # Track recently viewed if user is authenticated
         if request.headers.get('Authorization'):
             try:
-                from flask_jwt_extended import get_jwt_identity
-                user_id = get_jwt_identity()
+                verify_jwt_in_request()
+                user_id = int(get_jwt_identity())
                 recently_viewed = RecentlyViewed(
                     user_id=user_id,
                     bodega_id=bodega_id
                 )
                 db.session.add(recently_viewed)
                 db.session.commit()
-            except:
+            except Exception as e:
                 pass  # Ignore errors for tracking
         
         return jsonify({
@@ -181,7 +181,7 @@ def update_bodega(bodega_id):
 @jwt_required()
 def save_bodega(bodega_id):
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         # Check if already saved
         existing = SavedBodega.query.filter_by(user_id=user_id, bodega_id=bodega_id).first()
@@ -202,7 +202,7 @@ def save_bodega(bodega_id):
 @jwt_required()
 def unsave_bodega(bodega_id):
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         saved_bodega = SavedBodega.query.filter_by(user_id=user_id, bodega_id=bodega_id).first()
         if not saved_bodega:

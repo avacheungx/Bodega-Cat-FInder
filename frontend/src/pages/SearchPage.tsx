@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Search, MapPin, Filter, Star, Heart } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -187,10 +188,14 @@ export const SearchPage: React.FC = () => {
           {searchType === 'cats' ? (
             <div className="space-y-4">
               {cats.map((cat) => (
-                <div key={cat.id} className="bg-white rounded-lg shadow-sm border p-4">
+                <Link
+                  key={cat.id}
+                  to={`/cat/${cat.id}`}
+                  className="block bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow"
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-lg">{cat.name}</h3>
+                      <h3 className="font-semibold text-lg text-gray-900">{cat.name}</h3>
                       <p className="text-gray-600 text-sm">{cat.bodega_name}</p>
                       <p className="text-gray-500 text-xs flex items-center gap-1 mt-1">
                         <MapPin className="w-3 h-3" />
@@ -207,20 +212,24 @@ export const SearchPage: React.FC = () => {
                         <span className="text-sm text-gray-600">({cat.review_count} reviews)</span>
                       </div>
                     </div>
-                    <button className="text-gray-400 hover:text-red-500">
+                    <div className="text-gray-400">
                       <Heart className="w-5 h-5" />
-                    </button>
+                    </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           ) : (
             <div className="space-y-4">
               {bodegas.map((bodega) => (
-                <div key={bodega.id} className="bg-white rounded-lg shadow-sm border p-4">
+                <Link
+                  key={bodega.id}
+                  to={`/bodega/${bodega.id}`}
+                  className="block bg-white rounded-lg shadow-sm border p-4 hover:shadow-md transition-shadow"
+                >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-lg">{bodega.name}</h3>
+                      <h3 className="font-semibold text-lg text-gray-900">{bodega.name}</h3>
                       <p className="text-gray-500 text-xs flex items-center gap-1 mt-1">
                         <MapPin className="w-3 h-3" />
                         {bodega.address}
@@ -237,11 +246,11 @@ export const SearchPage: React.FC = () => {
                         <span className="text-sm text-gray-600">({bodega.review_count} reviews)</span>
                       </div>
                     </div>
-                    <button className="text-gray-400 hover:text-red-500">
+                    <div className="text-gray-400">
                       <Heart className="w-5 h-5" />
-                    </button>
+                    </div>
                   </div>
-                </div>
+                </Link>
               ))}
             </div>
           )}

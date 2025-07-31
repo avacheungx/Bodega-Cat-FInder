@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { Heart, MapPin, Star, Trash2 } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
@@ -43,8 +44,8 @@ export const SavedPage: React.FC = () => {
     setLoading(true);
     try {
       const [catsResponse, bodegasResponse] = await Promise.all([
-        axios.get('/api/users/saved-cats'),
-        axios.get('/api/users/saved-bodegas')
+        axios.get('/api/users/savedcats'),
+        axios.get('/api/users/savedbodegas')
       ]);
       setSavedCats(catsResponse.data.saved_cats);
       setSavedBodegas(bodegasResponse.data.saved_bodegas);
@@ -150,9 +151,13 @@ export const SavedPage: React.FC = () => {
               <p className="text-gray-600">Start exploring and save your favorite bodega cats!</p>
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2">
-              {savedCats.map((cat) => (
-                <div key={cat.id} className="bg-white rounded-lg shadow-sm border p-6">
+                         <div className="grid gap-6 md:grid-cols-2">
+               {savedCats.map((cat) => (
+                 <Link
+                   key={cat.id}
+                   to={`/cat/${cat.id}`}
+                   className="block bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow"
+                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg text-gray-900">{cat.name}</h3>
@@ -167,15 +172,18 @@ export const SavedPage: React.FC = () => {
                         <span className="text-sm text-gray-600">({cat.review_count} reviews)</span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => removeSavedCat(cat.id)}
-                      className="text-gray-400 hover:text-red-500 ml-4"
-                      title="Remove from saved"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
+                                         <button
+                       onClick={(e) => {
+                         e.preventDefault();
+                         removeSavedCat(cat.id);
+                       }}
+                       className="text-gray-400 hover:text-red-500 ml-4"
+                       title="Remove from saved"
+                     >
+                       <Trash2 className="w-5 h-5" />
+                     </button>
+                   </div>
+                 </Link>
               ))}
             </div>
           )}
@@ -189,9 +197,13 @@ export const SavedPage: React.FC = () => {
               <p className="text-gray-600">Start exploring and save your favorite bodegas!</p>
             </div>
           ) : (
-            <div className="grid gap-6 md:grid-cols-2">
-              {savedBodegas.map((bodega) => (
-                <div key={bodega.id} className="bg-white rounded-lg shadow-sm border p-6">
+                         <div className="grid gap-6 md:grid-cols-2">
+               {savedBodegas.map((bodega) => (
+                 <Link
+                   key={bodega.id}
+                   to={`/bodega/${bodega.id}`}
+                   className="block bg-white rounded-lg shadow-sm border p-6 hover:shadow-md transition-shadow"
+                 >
                   <div className="flex items-start justify-between">
                     <div className="flex-1">
                       <h3 className="font-semibold text-lg text-gray-900">{bodega.name}</h3>
@@ -208,15 +220,18 @@ export const SavedPage: React.FC = () => {
                         <span className="text-sm text-gray-600">({bodega.review_count} reviews)</span>
                       </div>
                     </div>
-                    <button
-                      onClick={() => removeSavedBodega(bodega.id)}
-                      className="text-gray-400 hover:text-red-500 ml-4"
-                      title="Remove from saved"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
-                  </div>
-                </div>
+                                         <button
+                       onClick={(e) => {
+                         e.preventDefault();
+                         removeSavedBodega(bodega.id);
+                       }}
+                       className="text-gray-400 hover:text-red-500 ml-4"
+                       title="Remove from saved"
+                     >
+                       <Trash2 className="w-5 h-5" />
+                     </button>
+                   </div>
+                 </Link>
               ))}
             </div>
           )}

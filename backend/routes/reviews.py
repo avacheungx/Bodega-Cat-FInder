@@ -18,7 +18,7 @@ review_schema = ReviewSchema()
 @jwt_required()
 def create_review():
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         data = request.get_json()
         validated_data = review_schema.load(data)
         
@@ -87,7 +87,7 @@ def create_review():
 @jwt_required()
 def update_review(review_id):
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         review = Review.query.get_or_404(review_id)
         
         # Check if user owns this review
@@ -144,7 +144,7 @@ def update_review(review_id):
 @jwt_required()
 def delete_review(review_id):
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         review = Review.query.get_or_404(review_id)
         
         # Check if user owns this review
@@ -258,7 +258,7 @@ def get_bodega_reviews(bodega_id):
 @jwt_required()
 def get_user_reviews():
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         

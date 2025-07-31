@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Upload, Cat, Store, MapPin, Star } from 'lucide-react';
+import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -52,8 +53,21 @@ export const UploadPage: React.FC = () => {
     setLoading(true);
     
     try {
-      // This would be implemented with actual API call
-      toast.success('Cat uploaded successfully! (Demo mode)');
+      const response = await axios.post('/api/cats/', {
+        name: catForm.name,
+        bodega_name: catForm.bodega_name,
+        address: catForm.address,
+        description: catForm.description,
+        age: catForm.age,
+        breed: catForm.breed,
+        sex: catForm.sex,
+        personality: catForm.personality,
+        color: catForm.color,
+        weight: catForm.weight,
+        is_friendly: catForm.is_friendly
+      });
+      
+      toast.success('Cat uploaded successfully!');
       setCatForm({
         name: '',
         bodega_name: '',
@@ -67,8 +81,8 @@ export const UploadPage: React.FC = () => {
         weight: '',
         is_friendly: true
       });
-    } catch (error) {
-      toast.error('Failed to upload cat');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to upload cat');
     } finally {
       setLoading(false);
     }
@@ -79,8 +93,17 @@ export const UploadPage: React.FC = () => {
     setLoading(true);
     
     try {
-      // This would be implemented with actual API call
-      toast.success('Bodega uploaded successfully! (Demo mode)');
+      const response = await axios.post('/api/bodegas/', {
+        name: bodegaForm.name,
+        address: bodegaForm.address,
+        description: bodegaForm.description,
+        phone: bodegaForm.phone,
+        hours: bodegaForm.hours,
+        latitude: 40.7589, // Default NYC coordinates - in real app, would use geocoding
+        longitude: -73.9851
+      });
+      
+      toast.success('Bodega uploaded successfully!');
       setBodegaForm({
         name: '',
         address: '',
@@ -89,8 +112,8 @@ export const UploadPage: React.FC = () => {
         hours: '',
         cat_count: 1
       });
-    } catch (error) {
-      toast.error('Failed to upload bodega');
+    } catch (error: any) {
+      toast.error(error.response?.data?.error || 'Failed to upload bodega');
     } finally {
       setLoading(false);
     }

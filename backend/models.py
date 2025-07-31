@@ -125,6 +125,9 @@ class SavedCat(db.Model):
     cat_id = db.Column(db.Integer, db.ForeignKey('cats.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # Relationships
+    cat = db.relationship('Cat', backref='saved_cats', lazy=True)
+    
     def __repr__(self):
         return f'<SavedCat {self.user_id}-{self.cat_id}>'
 
@@ -135,6 +138,9 @@ class SavedBodega(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
     bodega_id = db.Column(db.Integer, db.ForeignKey('bodegas.id'), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    bodega = db.relationship('Bodega', backref='saved_bodegas', lazy=True)
     
     def __repr__(self):
         return f'<SavedBodega {self.user_id}-{self.bodega_id}>'
@@ -147,6 +153,10 @@ class RecentlyViewed(db.Model):
     cat_id = db.Column(db.Integer, db.ForeignKey('cats.id'), nullable=True)
     bodega_id = db.Column(db.Integer, db.ForeignKey('bodegas.id'), nullable=True)
     viewed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    
+    # Relationships
+    cat = db.relationship('Cat', backref='recently_viewed', lazy=True)
+    bodega = db.relationship('Bodega', backref='recently_viewed', lazy=True)
     
     def __repr__(self):
         return f'<RecentlyViewed {self.user_id}>' 

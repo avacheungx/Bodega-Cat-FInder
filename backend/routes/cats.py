@@ -1,5 +1,5 @@
-from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required, get_jwt_identity
+from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required, get_jwt_identity, verify_jwt_in_request
 from models import db, Cat, Bodega, CatPhoto, SavedCat, RecentlyViewed, Review
 from marshmallow import Schema, fields, ValidationError
 from sqlalchemy import func
@@ -78,15 +78,15 @@ def get_cat(cat_id):
         # Track recently viewed if user is authenticated
         if request.headers.get('Authorization'):
             try:
-                from flask_jwt_extended import get_jwt_identity
-                user_id = get_jwt_identity()
+                verify_jwt_in_request()
+                user_id = int(get_jwt_identity())
                 recently_viewed = RecentlyViewed(
                     user_id=user_id,
                     cat_id=cat_id
                 )
                 db.session.add(recently_viewed)
                 db.session.commit()
-            except:
+            except Exception as e:
                 pass  # Ignore errors for tracking
         
         return jsonify({
@@ -125,12 +125,43 @@ def get_cat(cat_id):
 def create_cat():
     try:
         data = request.get_json()
-        validated_data = cat_schema.load(data)
         
-        # Verify bodega exists
-        bodega = Bodega.query.get(validated_data['bodega_id'])
-        if not bodega:
-            return jsonify({'error': 'Bodega not found'}), 404
+        # Handle case where bodega_name and address are provided instead of bodega_id
+        if 'bodega_name' in data and 'address' in data:
+            # Check if bodega exists with this name and address
+            bodega = Bodega.query.filter_by(
+                name=data['bodega_name'],
+                address=data['address']
+            ).first()
+            
+            if not bodega:
+                # Create new bodega
+                bodega = Bodega(
+                    name=data['bodega_name'],
+                    address=data['address'],
+                    description=data.get('bodega_description', ''),
+                    latitude=40.7589,  # Default NYC coordinates
+                    longitude=-73.9851,
+                    cat_count=1
+                )
+                db.session.add(bodega)
+                db.session.flush()  # Get the ID without committing
+        
+        # Prepare cat data
+        cat_data = {
+            'name': data['name'],
+            'bodega_id': bodega.id,
+            'description': data.get('description', ''),
+            'age': data.get('age', ''),
+            'breed': data.get('breed', ''),
+            'sex': data.get('sex', ''),
+            'personality': data.get('personality', ''),
+            'color': data.get('color', ''),
+            'weight': data.get('weight', ''),
+            'is_friendly': data.get('is_friendly', True)
+        }
+        
+        validated_data = cat_schema.load(cat_data)
         
         new_cat = Cat(**validated_data)
         db.session.add(new_cat)
@@ -145,7 +176,8 @@ def create_cat():
             'cat': {
                 'id': new_cat.id,
                 'name': new_cat.name,
-                'bodega_id': new_cat.bodega_id
+                'bodega_id': new_cat.bodega_id,
+                'bodega_name': bodega.name
             }
         }), 201
         
@@ -186,7 +218,7 @@ def update_cat(cat_id):
 @jwt_required()
 def save_cat(cat_id):
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         # Check if already saved
         existing = SavedCat.query.filter_by(user_id=user_id, cat_id=cat_id).first()
@@ -207,7 +239,7 @@ def save_cat(cat_id):
 @jwt_required()
 def unsave_cat(cat_id):
     try:
-        user_id = get_jwt_identity()
+        user_id = int(get_jwt_identity())
         
         saved_cat = SavedCat.query.filter_by(user_id=user_id, cat_id=cat_id).first()
         if not saved_cat:
