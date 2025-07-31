@@ -1,9 +1,7 @@
 from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 from flask_jwt_extended import JWTManager
-from flask_bcrypt import Bcrypt
 from dotenv import load_dotenv
 import os
 
@@ -12,9 +10,7 @@ load_dotenv()
 
 # Initialize extensions
 db = SQLAlchemy()
-migrate = Migrate()
 jwt = JWTManager()
-bcrypt = Bcrypt()
 
 # Import models to register them with SQLAlchemy
 from models import *
@@ -31,24 +27,19 @@ def create_app():
     
     # Initialize extensions with app
     db.init_app(app)
-    migrate.init_app(app, db)
     jwt.init_app(app)
-    bcrypt.init_app(app)
     
     # Enable CORS
     CORS(app, resources={r"/api/*": {"origins": "*"}})
     
     # Import and register blueprints
-    from routes.auth import auth_bp, init_bcrypt
+    from routes.auth import auth_bp
     from routes.cats import cats_bp
     from routes.bodegas import bodegas_bp
     from routes.search import search_bp
     from routes.reviews import reviews_bp
     from routes.users import users_bp
     from routes.photos import photos_bp
-    
-    # Initialize auth bcrypt
-    init_bcrypt(app)
     
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(cats_bp, url_prefix='/api/cats')

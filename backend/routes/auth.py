@@ -1,14 +1,11 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
-from flask_bcrypt import Bcrypt
 from models import db, User
 from marshmallow import Schema, fields, ValidationError
+import hashlib
+import os
 
 auth_bp = Blueprint('auth', __name__)
-bcrypt = Bcrypt()
-
-def init_bcrypt(app):
-    bcrypt.init_app(app)
 
 class UserSchema(Schema):
     username = fields.Str(required=True, validate=lambda x: len(x) >= 3)
@@ -21,6 +18,15 @@ class LoginSchema(Schema):
 
 user_schema = UserSchema()
 login_schema = LoginSchema()
+
+def hash_password(password):
+    """Hash password using SHA-256 with salt"""
+    salt = os.getenv('PASSWORD_SALT', 'default-salt')
+    return hashlib.sha256((password + salt).encode()).hexdigest()
+
+def check_password(password, hashed):
+    """Check if password matches hash"""
+    return hash_password(password) == hashed
 
 @auth_bp.route('/register', methods=['POST'])
 def register():
@@ -36,7 +42,7 @@ def register():
             return jsonify({'error': 'Email already exists'}), 400
         
         # Create new user
-        hashed_password = bcrypt.generate_password_hash(validated_data['password']).decode('utf-8')
+        hashed_password = hash_password(validated_data['password'])
         new_user = User(
             username=validated_data['username'],
             email=validated_data['email'],
@@ -77,7 +83,7 @@ def login():
             (User.email == validated_data['username'])
         ).first()
         
-        if not user or not bcrypt.check_password_hash(user.password_hash, validated_data['password']):
+        if not user or not check_password(validated_data['password'], user.password_hash):
             return jsonify({'error': 'Invalid username or password'}), 401
         
         # Create access token
@@ -112,8 +118,7 @@ def get_profile():
             'user': {
                 'id': user.id,
                 'username': user.username,
-                'email': user.email,
-                'created_at': user.created_at.isoformat()
+                'email': user.email
             }
         }), 200
         
@@ -132,7 +137,7 @@ def update_profile():
         
         data = request.get_json()
         
-        # Update allowed fields
+        # Update fields if provided
         if 'username' in data and data['username'] != user.username:
             if User.query.filter_by(username=data['username']).first():
                 return jsonify({'error': 'Username already exists'}), 400
@@ -142,6 +147,9 @@ def update_profile():
             if User.query.filter_by(email=data['email']).first():
                 return jsonify({'error': 'Email already exists'}), 400
             user.email = data['email']
+        
+        if 'password' in data:
+            user.password_hash = hash_password(data['password'])
         
         db.session.commit()
         
