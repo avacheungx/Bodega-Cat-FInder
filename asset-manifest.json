@@ -1,0 +1,13 @@
+{
+  "files": {
+    "main.css": "/Bodega-Cat-FInder/static/css/main.65e9e490.css",
+    "main.js": "/Bodega-Cat-FInder/static/js/main.ec537f46.js",
+    "index.html": "/Bodega-Cat-FInder/index.html",
+    "main.65e9e490.css.map": "/Bodega-Cat-FInder/static/css/main.65e9e490.css.map",
+    "main.ec537f46.js.map": "/Bodega-Cat-FInder/static/js/main.ec537f46.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.65e9e490.css",
+    "static/js/main.ec537f46.js"
+  ]
+}
