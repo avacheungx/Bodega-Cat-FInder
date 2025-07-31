@@ -5,6 +5,7 @@ from marshmallow import Schema, fields, ValidationError
 from sqlalchemy import func
 import os
 from werkzeug.utils import secure_filename
+from utils.geocoding import geocode_address
 
 cats_bp = Blueprint('cats', __name__)
 
@@ -137,13 +138,21 @@ def create_cat():
             ).first()
             
             if not bodega:
+                # Geocode the address to get coordinates
+                coordinates = geocode_address(data['address'])
+                if coordinates:
+                    latitude, longitude = coordinates
+                else:
+                    # Fallback to default NYC coordinates if geocoding fails
+                    latitude, longitude = 40.7589, -73.9851
+                
                 # Create new bodega
                 bodega = Bodega(
                     name=data['bodega_name'],
                     address=data['address'],
                     description=data.get('bodega_description', ''),
-                    latitude=40.7589,  # Default NYC coordinates
-                    longitude=-73.9851,
+                    latitude=latitude,
+                    longitude=longitude,
                     cat_count=1
                 )
                 db.session.add(bodega)

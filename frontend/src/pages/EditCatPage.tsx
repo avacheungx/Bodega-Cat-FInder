@@ -47,7 +47,7 @@ export const EditCatPage: React.FC = () => {
     if (id) {
       loadCat();
     }
-  }, [id]);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadCat = async () => {
     try {

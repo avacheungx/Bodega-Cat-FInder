@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Cat, Store } from 'lucide-react';
+import { Upload, Cat, Store, MapPin } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -46,6 +46,82 @@ export const UploadPage: React.FC = () => {
       ...prev,
       [name]: value
     }));
+  };
+
+  const getCurrentLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Geolocation is not supported by this browser');
+      return;
+    }
+
+    // Check if permission is already denied
+    if (navigator.permissions) {
+      navigator.permissions.query({ name: 'geolocation' }).then((result) => {
+        if (result.state === 'denied') {
+          toast.error(
+            'Location permission denied. To enable location access:\n' +
+            '1. Click the lock icon in your browser address bar\n' +
+            '2. Allow location access\n' +
+            '3. Refresh the page and try again'
+          );
+          return;
+        }
+      });
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        const { latitude, longitude } = position.coords;
+        
+        try {
+          // Use reverse geocoding to get the address
+          const response = await axios.get(
+            `https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${process.env.REACT_APP_GOOGLE_MAPS_API_KEY}`
+          );
+          
+          if (response.data.results && response.data.results.length > 0) {
+            const address = response.data.results[0].formatted_address;
+            
+            if (uploadType === 'cat') {
+              setCatForm(prev => ({ ...prev, address }));
+            } else {
+              setBodegaForm(prev => ({ ...prev, address }));
+            }
+            
+            toast.success('Location detected and address filled!');
+          } else {
+            toast.error('Could not find address for current location');
+          }
+        } catch (error) {
+          toast.error('Error getting address from location');
+        }
+      },
+      (error) => {
+        switch (error.code) {
+          case 1:
+            toast.error(
+              'Location permission denied. To enable location access:\n' +
+              '1. Click the lock icon in your browser address bar\n' +
+              '2. Allow location access\n' +
+              '3. Refresh the page and try again'
+            );
+            break;
+          case 2:
+            toast.error('Location unavailable. Please check your device settings and try again.');
+            break;
+          case 3:
+            toast.error('Location request timed out. Please try again.');
+            break;
+          default:
+            toast.error('Error getting location');
+        }
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 15000,
+        maximumAge: 300000
+      }
+    );
   };
 
   const handleCatSubmit = async (e: React.FormEvent) => {
@@ -98,9 +174,8 @@ export const UploadPage: React.FC = () => {
         address: bodegaForm.address,
         description: bodegaForm.description,
         phone: bodegaForm.phone,
-        hours: bodegaForm.hours,
-        latitude: 40.7589, // Default NYC coordinates - in real app, would use geocoding
-        longitude: -73.9851
+        hours: bodegaForm.hours
+        // Backend will automatically geocode the address
       });
       
       toast.success('Bodega uploaded successfully!');
@@ -200,14 +275,25 @@ export const UploadPage: React.FC = () => {
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Address *</label>
-                <input
-                  type="text"
-                  name="address"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  value={catForm.address}
-                  onChange={handleCatChange}
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name="address"
+                    required
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    value={catForm.address}
+                    onChange={handleCatChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={getCurrentLocation}
+                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg flex items-center gap-2 text-sm"
+                    title="Use current location"
+                  >
+                    <MapPin className="w-4 h-4" />
+                    Location
+                  </button>
+                </div>
               </div>
 
               <div className="md:col-span-2">
@@ -355,14 +441,25 @@ export const UploadPage: React.FC = () => {
 
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Address *</label>
-                <input
-                  type="text"
-                  name="address"
-                  required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                  value={bodegaForm.address}
-                  onChange={handleBodegaChange}
-                />
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    name="address"
+                    required
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                    value={bodegaForm.address}
+                    onChange={handleBodegaChange}
+                  />
+                  <button
+                    type="button"
+                    onClick={getCurrentLocation}
+                    className="px-3 py-2 bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded-lg flex items-center gap-2 text-sm"
+                    title="Use current location"
+                  >
+                    <MapPin className="w-4 h-4" />
+                    Location
+                  </button>
+                </div>
               </div>
 
               <div className="md:col-span-2">

@@ -5,14 +5,15 @@ from marshmallow import Schema, fields, ValidationError
 from sqlalchemy import func
 import os
 from werkzeug.utils import secure_filename
+from utils.geocoding import geocode_address
 
 bodegas_bp = Blueprint('bodegas', __name__)
 
 class BodegaSchema(Schema):
     name = fields.Str(required=True)
     address = fields.Str(required=True)
-    latitude = fields.Float(required=True)
-    longitude = fields.Float(required=True)
+    latitude = fields.Float(required=False)
+    longitude = fields.Float(required=False)
     description = fields.Str()
     phone = fields.Str()
     hours = fields.Str()
@@ -131,6 +132,16 @@ def get_bodega(bodega_id):
 def create_bodega():
     try:
         data = request.get_json()
+        
+        # If latitude and longitude are not provided, geocode the address
+        if 'latitude' not in data or 'longitude' not in data:
+            coordinates = geocode_address(data['address'])
+            if coordinates:
+                data['latitude'], data['longitude'] = coordinates
+            else:
+                # Fallback to default NYC coordinates if geocoding fails
+                data['latitude'], data['longitude'] = 40.7589, -73.9851
+        
         validated_data = bodega_schema.load(data)
         
         # Get current user
@@ -145,7 +156,9 @@ def create_bodega():
             'bodega': {
                 'id': new_bodega.id,
                 'name': new_bodega.name,
-                'address': new_bodega.address
+                'address': new_bodega.address,
+                'latitude': new_bodega.latitude,
+                'longitude': new_bodega.longitude
             }
         }), 201
         

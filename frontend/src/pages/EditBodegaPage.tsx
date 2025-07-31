@@ -42,7 +42,7 @@ export const EditBodegaPage: React.FC = () => {
     if (id) {
       loadBodega();
     }
-  }, [id]);
+  }, [id]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadBodega = async () => {
     try {

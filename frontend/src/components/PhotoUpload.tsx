@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Upload, X, Camera, Star } from 'lucide-react';
+import { Upload, Camera, Star } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 
@@ -64,7 +64,7 @@ export const PhotoUpload: React.FC<PhotoUploadProps> = ({
       formData.append('caption', caption);
       formData.append('is_primary', isPrimary.toString());
 
-      const response = await axios.post(`/api/photos/${type}s/${id}/photos`, formData, {
+      await axios.post(`/api/photos/${type}s/${id}/photos`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
         },

@@ -83,7 +83,7 @@ export const CatDetailPage: React.FC = () => {
         checkIfSaved();
       }
     }
-  }, [id, user]);
+  }, [id, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadCatDetails = async () => {
     try {

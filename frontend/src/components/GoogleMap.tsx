@@ -23,6 +23,7 @@ interface GoogleMapProps {
   height?: string;
   showSearchBox?: boolean;
   onSearchResult?: (result: google.maps.places.PlaceResult) => void;
+  userLocation?: { lat: number; lng: number } | null;
 }
 
 export const GoogleMap: React.FC<GoogleMapProps> = ({
@@ -34,7 +35,8 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
   className = '',
   height = '400px',
   showSearchBox = false,
-  onSearchResult
+  onSearchResult,
+  userLocation
 }) => {
   const mapRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<google.maps.Map | null>(null);
@@ -77,15 +79,43 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
         center,
         zoom,
         mapTypeId: google.maps.MapTypeId.ROADMAP,
-        mapTypeControl: true,
-        streetViewControl: true,
+        mapTypeControl: false,
+        streetViewControl: false,
         fullscreenControl: true,
         zoomControl: true,
+        zoomControlOptions: {
+          position: google.maps.ControlPosition.RIGHT_BOTTOM
+        },
         styles: [
           {
             featureType: 'poi',
             elementType: 'labels',
             stylers: [{ visibility: 'off' }]
+          },
+          {
+            featureType: 'transit',
+            elementType: 'labels',
+            stylers: [{ visibility: 'off' }]
+          },
+          {
+            featureType: 'landscape',
+            elementType: 'geometry',
+            stylers: [{ color: '#f5f5f5' }]
+          },
+          {
+            featureType: 'road',
+            elementType: 'geometry',
+            stylers: [{ color: '#ffffff' }]
+          },
+          {
+            featureType: 'road',
+            elementType: 'geometry.stroke',
+            stylers: [{ color: '#e5e5e5' }]
+          },
+          {
+            featureType: 'water',
+            elementType: 'geometry',
+            stylers: [{ color: '#e3f2fd' }]
           }
         ]
       });
@@ -161,15 +191,21 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
         min-width: 120px;
       `;
       legend.innerHTML = `
-        <div style="font-weight: bold; margin-bottom: 5px;">Legend</div>
-        <div style="display: flex; align-items: center; margin-bottom: 3px;">
-          <div style="width: 16px; height: 16px; background: #FF3737; border-radius: 50%; margin-right: 8px; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
-          <span>🐱 Cat</span>
+        <div style="font-weight: bold; margin-bottom: 8px; color: #374151;">Legend</div>
+        <div style="display: flex; align-items: center; margin-bottom: 6px;">
+          <div style="width: 18px; height: 18px; background: #FF3737; border-radius: 50%; margin-right: 10px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
+          <span style="font-size: 13px; color: #374151;">🐱 Cat</span>
         </div>
+        <div style="display: flex; align-items: center; margin-bottom: 6px;">
+          <div style="width: 18px; height: 18px; background: #4FF5F0; border-radius: 50%; margin-right: 10px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
+          <span style="font-size: 13px; color: #374151;">🏪 Bodega</span>
+        </div>
+        ${userLocation ? `
         <div style="display: flex; align-items: center;">
-          <div style="width: 16px; height: 16px; background: #FF3737; border-radius: 50%; margin-right: 8px; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);"></div>
-          <span>🏪 Bodega</span>
+          <div style="width: 18px; height: 18px; background: #3B82F6; border-radius: 50%; margin-right: 10px; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.2);"></div>
+          <span style="font-size: 13px; color: #374151;">📍 You</span>
         </div>
+        ` : ''}
       `;
 
       // Add legend to map
@@ -187,6 +223,13 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
       }
 
       setIsLoading(false);
+      
+      console.log('Map initialized successfully');
+      console.log('Map center:', mapInstanceRef.current.getCenter());
+      console.log('Map zoom:', mapInstanceRef.current.getZoom());
+      
+      // Update markers after map is initialized
+      updateMarkers();
     } catch (err) {
       console.error('Error loading Google Maps:', err);
       let errorMessage = 'Failed to load Google Maps. ';
@@ -206,28 +249,51 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
       setError(errorMessage);
       setIsLoading(false);
     }
-  }, [center, zoom, showSearchBox, onMapClick, onSearchResult]);
+  }, [center, zoom, showSearchBox, onMapClick, onSearchResult, userLocation]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Update markers when locations change
   const updateMarkers = useCallback(() => {
-    if (!mapInstanceRef.current) return;
+    console.log('updateMarkers function called');
+    if (!mapInstanceRef.current) {
+      console.log('Map instance not available, returning early');
+      return;
+    }
 
     console.log('Updating markers with locations:', locations);
+    console.log('Map instance available:', !!mapInstanceRef.current);
 
     // Clear existing markers
     markersRef.current.forEach(marker => marker.setMap(null));
     markersRef.current = [];
 
+    // Add user location marker if available
+    if (userLocation) {
+      const userMarker = new google.maps.Marker({
+        position: { lat: userLocation.lat, lng: userLocation.lng },
+        map: mapInstanceRef.current,
+        title: 'Your Location',
+        icon: {
+          url: 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTQiIGZpbGw9IiMzQjgyRkYiLz4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTAiIGZpbGw9IndoaXRlIi8+CjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjYiIGZpbGw9IiMzQjgyRkYiLz4KPHN2ZyB4PSI4IiB5PSI4IiB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPgo8cGF0aCBkPSJNMTIgMkM2LjQ4IDIgMiA2LjQ4IDIgMTJDMiAxNy41MiA2LjQ4IDIyIDEyIDIyQzE3LjUyIDIyIDIyIDE3LjUyIDIyIDEyQzIyIDYuNDggMTcuNTIgMiAxMiAyWiIgZmlsbD0iIzM0MzQzNCIvPgo8cGF0aCBkPSJNMTAgMTZMMTIgMTRMMTQgMTYiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAxNFYxMiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==',
+          scaledSize: new google.maps.Size(32, 32),
+          anchor: new google.maps.Point(16, 16)
+        },
+        animation: google.maps.Animation.BOUNCE
+      });
+      markersRef.current.push(userMarker);
+    }
+
     // Add new markers
     locations.forEach(location => {
       console.log('Adding marker for:', location.name, 'at:', location.latitude, location.longitude);
-      // Create custom marker with red dot and icon
+      console.log('Location type:', location.type);
+      // Use simple colored markers instead of complex SVG icons
       const markerIcon = {
-        url: location.type === 'cat' 
-          ? 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTQiIGZpbGw9IiNGRjM3MzciLz4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTAiIGZpbGw9IndoaXRlIi8+CjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjYiIGZpbGw9IiNGRjM3MzciLz4KPHN2ZyB4PSI4IiB5PSI4IiB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPgo8cGF0aCBkPSJNMTIgMkM2LjQ4IDIgMiA2LjQ4IDIgMTJDMiAxNy41MiA2LjQ4IDIyIDEyIDIyQzE3LjUyIDIyIDIyIDE3LjUyIDIyIDEyQzIyIDYuNDggMTcuNTIgMiAxMiAyWiIgZmlsbD0iIzM0MzQzNCIvPgo8cGF0aCBkPSJNMTAgMTZMMTIgMTRMMTQgMTYiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAxNFYxMiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==' // Cat icon with red dot
-          : 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMzIiIGhlaWdodD0iMzIiIHZpZXdCb3g9IjAgMCAzMiAzMiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTQiIGZpbGw9IiNGRjM3MzciLz4KPGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTAiIGZpbGw9IndoaXRlIi8+CjxjaXJjbGUgY3g9IjE2IiBjeT0iMTYiIHI9IjYiIGZpbGw9IiNGRjM3MzciLz4KPHN2ZyB4PSI4IiB5PSI4IiB3aWR0aD0iMTYiIGhlaWdodD0iMTYiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0id2hpdGUiPgo8cGF0aCBkPSJNMTIgMkM2LjQ4IDIgMiA2LjQ4IDIgMTJDMiAxNy41MiA2LjQ4IDIyIDEyIDIyQzE3LjUyIDIyIDIyIDE3LjUyIDIyIDEyQzIyIDYuNDggMTcuNTIgMiAxMiAyWiIgZmlsbD0iIzM0MzQzNCIvPgo8cGF0aCBkPSJNMTAgMTZMMTIgMTRMMTQgMTYiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIi8+CjxwYXRoIGQ9Ik0xMiAxNFYxMiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiLz4KPC9zdmc+Cg==', // Bodega icon with red dot
-        scaledSize: new google.maps.Size(32, 32),
-        anchor: new google.maps.Point(16, 16)
+        path: google.maps.SymbolPath.CIRCLE,
+        fillColor: location.type === 'cat' ? '#FF3737' : '#4FF5F0',
+        fillOpacity: 1,
+        strokeColor: '#FFFFFF',
+        strokeWeight: 2,
+        scale: 8
       };
 
       const marker = new google.maps.Marker({
@@ -235,8 +301,12 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
         map: mapInstanceRef.current,
         title: location.name,
         icon: markerIcon,
-        animation: google.maps.Animation.DROP
+        animation: google.maps.Animation.DROP,
+        zIndex: 1000
       });
+      
+      console.log('Marker created for', location.name, 'at position:', { lat: location.latitude, lng: location.longitude });
+      console.log('Marker added to map:', marker.getMap() === mapInstanceRef.current);
 
       // Create info window
       const infoWindow = new google.maps.InfoWindow({
@@ -257,11 +327,11 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
               <div style="display: flex; align-items: center; margin-bottom: 8px;">
                 <div style="display: flex; margin-right: 6px;">
                   ${Array.from({ length: 5 }, (_, i) => 
-                    `<span style="color: ${i < Math.floor(location.rating) ? '#fbbf24' : '#d1d5db'}; font-size: 14px;">★</span>`
+                    `<span style="color: ${i < Math.floor(location.rating || 0) ? '#fbbf24' : '#d1d5db'}; font-size: 14px;">★</span>`
                   ).join('')}
                 </div>
                 <span style="font-size: 13px; color: #6b7280; font-weight: 500;">
-                  ${location.rating.toFixed(1)}
+                  ${(location.rating || 0).toFixed(1)}
                 </span>
               </div>
             ` : ''}
@@ -301,7 +371,9 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
 
       markersRef.current.push(marker);
     });
-  }, [locations, onLocationClick]);
+    
+
+  }, [locations, onLocationClick, userLocation]);
 
   // Initialize map on mount and cleanup on unmount
   useEffect(() => {
@@ -325,10 +397,17 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
     };
   }, [initializeMap]);
 
-  // Update markers when locations change
+  // Update markers when locations change (only if map is available)
   useEffect(() => {
-    updateMarkers();
-  }, [updateMarkers]);
+    console.log('useEffect for updateMarkers triggered');
+    console.log('locations prop:', locations);
+    if (mapInstanceRef.current) {
+      console.log('Map instance available, calling updateMarkers');
+      updateMarkers();
+    } else {
+      console.log('Map instance not available yet, skipping updateMarkers');
+    }
+  }, [updateMarkers, locations]);
 
   // Update map center when center prop changes
   useEffect(() => {
@@ -348,14 +427,14 @@ export const GoogleMap: React.FC<GoogleMapProps> = ({
   return (
     <div className={`relative ${className}`}>
       {isLoading && (
-        <div className="absolute inset-0 bg-gray-100 rounded-lg flex items-center justify-center z-10">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+        <div className="absolute inset-0 bg-gray-100 rounded-xl flex items-center justify-center z-10 shadow-lg">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
         </div>
       )}
       <div 
         ref={mapRef} 
         style={{ height }} 
-        className="rounded-lg overflow-hidden"
+        className="rounded-xl overflow-hidden shadow-lg border border-gray-200"
       />
     </div>
   );

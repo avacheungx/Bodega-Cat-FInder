@@ -34,7 +34,7 @@ interface Bodega {
   created_at: string;
 }
 
-interface Cat {
+interface BodegaCat {
   id: number;
   name: string;
   description: string;
@@ -66,7 +66,7 @@ export const BodegaDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [bodega, setBodega] = useState<Bodega | null>(null);
-  const [cats, setCats] = useState<Cat[]>([]);
+  const [cats, setCats] = useState<BodegaCat[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSaved, setIsSaved] = useState(false);
@@ -82,7 +82,7 @@ export const BodegaDetailPage: React.FC = () => {
         checkIfSaved();
       }
     }
-  }, [id, user]);
+  }, [id, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadBodegaDetails = async () => {
     try {
