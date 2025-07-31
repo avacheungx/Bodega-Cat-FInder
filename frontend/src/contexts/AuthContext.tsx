@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
 import axios from 'axios';
 
 interface User {
@@ -37,8 +38,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Set up axios defaults
   useEffect(() => {
-    // Set base URL for API calls (without /api since it's in the request paths)
-    axios.defaults.baseURL = 'http://localhost:5001';
+    // Set base URL for API calls - use environment variable or fallback to localhost
+    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+    axios.defaults.baseURL = apiUrl;
     console.log('Axios base URL set to:', axios.defaults.baseURL);
     
     // Add cache-busting headers
@@ -107,19 +109,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);
-  };
-
-  const value = {
-    user,
-    token,
-    login,
-    register,
-    logout,
-    loading,
+    delete axios.defaults.headers.common['Authorization'];
   };
 
   return (
-    <AuthContext.Provider value={value}>
+    <AuthContext.Provider value={{ user, token, login, register, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );

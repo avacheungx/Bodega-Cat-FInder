@@ -57,6 +57,31 @@ npm install
 npm start
 ```
 
+## Deployment
+
+### GitHub Pages (Frontend)
+
+The frontend is automatically deployed to GitHub Pages when you push to the main branch.
+
+**Manual deployment:**
+```bash
+cd frontend
+npm run deploy
+```
+
+**Live site:** https://avacheungx.github.io/Bodega-Cat-FInder
+
+### Backend Deployment
+
+For the backend, you'll need to deploy to a service that supports Python/Flask:
+
+- **Heroku**: Easy deployment with PostgreSQL add-on
+- **Railway**: Simple deployment with database
+- **Render**: Free tier with PostgreSQL
+- **DigitalOcean App Platform**: Managed deployment
+
+After deploying the backend, set the `REACT_APP_API_URL` environment variable in your GitHub repository secrets.
+
 ## License
 
 MIT License
