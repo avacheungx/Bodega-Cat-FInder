@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Upload, Cat, Store, MapPin, Star } from 'lucide-react';
+import { Upload, Cat, Store } from 'lucide-react';
 import axios from 'axios';
 import { useAuth } from '../contexts/AuthContext';
 import toast from 'react-hot-toast';
@@ -53,7 +53,7 @@ export const UploadPage: React.FC = () => {
     setLoading(true);
     
     try {
-      const response = await axios.post('/api/cats/', {
+      await axios.post('/api/cats/', {
         name: catForm.name,
         bodega_name: catForm.bodega_name,
         address: catForm.address,
@@ -93,7 +93,7 @@ export const UploadPage: React.FC = () => {
     setLoading(true);
     
     try {
-      const response = await axios.post('/api/bodegas/', {
+      await axios.post('/api/bodegas/', {
         name: bodegaForm.name,
         address: bodegaForm.address,
         description: bodegaForm.description,

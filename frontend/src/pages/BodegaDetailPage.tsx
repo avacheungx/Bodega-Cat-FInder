@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { MapPin, Star, Heart, Phone, Clock, User, Camera, Cat } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { MapPin, Star, Heart, Phone, Clock, User, Camera, Cat, Edit } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
+import { PhotoUpload } from '../components/PhotoUpload';
+import { PhotoGallery } from '../components/PhotoGallery';
+
+interface Photo {
+  id: number;
+  filename: string;
+  caption: string;
+  is_primary: boolean;
+  created_at: string;
+}
 
 interface Bodega {
   id: number;
@@ -18,6 +28,9 @@ interface Bodega {
   review_count: number;
   cat_count: number;
   is_verified: boolean;
+  created_by: number;
+  creator_username: string;
+  photos: Photo[];
   created_at: string;
 }
 
@@ -51,6 +64,7 @@ interface Review {
 
 export const BodegaDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [bodega, setBodega] = useState<Bodega | null>(null);
   const [cats, setCats] = useState<Cat[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -211,16 +225,27 @@ export const BodegaDetailPage: React.FC = () => {
               {bodega.address}
             </p>
           </div>
-          <button
-            onClick={toggleSave}
-            className={`p-3 rounded-lg border-2 ${
-              isSaved
-                ? 'border-red-500 text-red-500 hover:bg-red-50'
-                : 'border-gray-300 text-gray-400 hover:border-primary-500 hover:text-primary-500'
-            }`}
-          >
-            <Heart className={`w-6 h-6 ${isSaved ? 'fill-current' : ''}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            {user && bodega.created_by === user.id && (
+              <button
+                onClick={() => navigate(`/bodega/${id}/edit`)}
+                className="p-3 rounded-lg border-2 border-gray-300 text-gray-400 hover:border-primary-500 hover:text-primary-500"
+                title="Edit bodega"
+              >
+                <Edit className="w-6 h-6" />
+              </button>
+            )}
+            <button
+              onClick={toggleSave}
+              className={`p-3 rounded-lg border-2 ${
+                isSaved
+                  ? 'border-red-500 text-red-500 hover:bg-red-50'
+                  : 'border-gray-300 text-gray-400 hover:border-primary-500 hover:text-primary-500'
+              }`}
+            >
+              <Heart className={`w-6 h-6 ${isSaved ? 'fill-current' : ''}`} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -278,11 +303,32 @@ export const BodegaDetailPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Photo Gallery */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <PhotoGallery
+              type="bodega"
+              id={bodega.id}
+              photos={bodega.photos || []}
+              onPhotoDeleted={loadBodegaDetails}
+              onPrimaryChanged={loadBodegaDetails}
+            />
+          </div>
+
+          {/* Photo Upload */}
+          {user && (
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <PhotoUpload
+                type="bodega"
+                id={bodega.id}
+                onPhotoUploaded={loadBodegaDetails}
+              />
+            </div>
+          )}
+
           {/* Cats */}
           <div className="bg-white rounded-lg shadow-sm border p-6">
-                                    <h2 className="text-xl font-semibold mb-6">Cats ({cats?.length || 0})</h2>
-                        
-                        {!cats || cats.length === 0 ? (
+            <h2 className="text-xl font-semibold mb-6">Cats ({cats?.length || 0})</h2>
+            {!cats || cats.length === 0 ? (
               <p className="text-gray-600 text-center py-8">No cats listed yet.</p>
             ) : (
               <div className="grid md:grid-cols-2 gap-6">

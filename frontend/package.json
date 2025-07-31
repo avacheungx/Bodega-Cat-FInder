@@ -19,6 +19,7 @@
     "axios": "^1.4.0",
     "@types/google.maps": "^3.54.10",
     "@react-google-maps/api": "^2.19.2",
+    "@googlemaps/js-api-loader": "^1.16.2",
     "react-hook-form": "^7.45.4",
     "react-hot-toast": "^2.4.1",
     "lucide-react": "^0.263.1",

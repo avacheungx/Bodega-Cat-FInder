@@ -1,9 +1,19 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import { MapPin, Star, Heart, Clock, User, MessageCircle, Camera } from 'lucide-react';
+import { useParams, Link, useNavigate } from 'react-router-dom';
+import { MapPin, Star, Heart, User, Camera, Edit } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
+import { PhotoUpload } from '../components/PhotoUpload';
+import { PhotoGallery } from '../components/PhotoGallery';
+
+interface Photo {
+  id: number;
+  filename: string;
+  caption: string;
+  is_primary: boolean;
+  created_at: string;
+}
 
 interface Cat {
   id: number;
@@ -22,6 +32,9 @@ interface Cat {
   rating: number;
   review_count: number;
   primary_photo: string | null;
+  created_by: number;
+  creator_username: string;
+  photos: Photo[];
   created_at: string;
 }
 
@@ -52,6 +65,7 @@ interface Bodega {
 
 export const CatDetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const [cat, setCat] = useState<Cat | null>(null);
   const [bodega, setBodega] = useState<Bodega | null>(null);
   const [reviews, setReviews] = useState<Review[]>([]);
@@ -205,16 +219,27 @@ export const CatDetailPage: React.FC = () => {
               {cat.address}
             </p>
           </div>
-          <button
-            onClick={toggleSave}
-            className={`p-3 rounded-lg border-2 ${
-              isSaved
-                ? 'border-red-500 text-red-500 hover:bg-red-50'
-                : 'border-gray-300 text-gray-400 hover:border-primary-500 hover:text-primary-500'
-            }`}
-          >
-            <Heart className={`w-6 h-6 ${isSaved ? 'fill-current' : ''}`} />
-          </button>
+          <div className="flex items-center gap-2">
+            {user && cat.created_by === user.id && (
+              <button
+                onClick={() => navigate(`/cat/${id}/edit`)}
+                className="p-3 rounded-lg border-2 border-gray-300 text-gray-400 hover:border-primary-500 hover:text-primary-500"
+                title="Edit cat"
+              >
+                <Edit className="w-6 h-6" />
+              </button>
+            )}
+            <button
+              onClick={toggleSave}
+              className={`p-3 rounded-lg border-2 ${
+                isSaved
+                  ? 'border-red-500 text-red-500 hover:bg-red-50'
+                  : 'border-gray-300 text-gray-400 hover:border-primary-500 hover:text-primary-500'
+              }`}
+            >
+              <Heart className={`w-6 h-6 ${isSaved ? 'fill-current' : ''}`} />
+            </button>
+          </div>
         </div>
       </div>
 
@@ -285,14 +310,31 @@ export const CatDetailPage: React.FC = () => {
                   <span className="text-lg font-semibold">{cat.rating.toFixed(1)}</span>
                 </div>
                 <p className="text-sm text-gray-600">{cat.review_count} reviews</p>
-                
-                <div className="mt-4">
-                  <h3 className="font-medium text-gray-900 mb-3">Added</h3>
-                  <p className="text-sm text-gray-600">{formatDate(cat.created_at)}</p>
-                </div>
               </div>
             </div>
           </div>
+
+          {/* Photo Gallery */}
+          <div className="bg-white rounded-lg shadow-sm border p-6">
+            <PhotoGallery
+              type="cat"
+              id={cat.id}
+              photos={cat.photos || []}
+              onPhotoDeleted={loadCatDetails}
+              onPrimaryChanged={loadCatDetails}
+            />
+          </div>
+
+          {/* Photo Upload */}
+          {user && (
+            <div className="bg-white rounded-lg shadow-sm border p-6">
+              <PhotoUpload
+                type="cat"
+                id={cat.id}
+                onPhotoUploaded={loadCatDetails}
+              />
+            </div>
+          )}
 
           {/* Reviews */}
           <div className="bg-white rounded-lg shadow-sm border p-6">

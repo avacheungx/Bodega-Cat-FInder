@@ -13,6 +13,8 @@ import { BodegaDetailPage } from './pages/BodegaDetailPage';
 import { SavedPage } from './pages/SavedPage';
 import { RecentlyViewedPage } from './pages/RecentlyViewedPage';
 import { UploadPage } from './pages/UploadPage';
+import { EditCatPage } from './pages/EditCatPage';
+import { EditBodegaPage } from './pages/EditBodegaPage';
 
 function App() {
   return (
@@ -27,7 +29,9 @@ function App() {
               <Route path="/register" element={<RegisterPage />} />
               <Route path="/search" element={<SearchPage />} />
               <Route path="/cat/:id" element={<CatDetailPage />} />
+              <Route path="/cat/:id/edit" element={<EditCatPage />} />
               <Route path="/bodega/:id" element={<BodegaDetailPage />} />
+              <Route path="/bodega/:id/edit" element={<EditBodegaPage />} />
               <Route 
                 path="/saved" 
                 element={

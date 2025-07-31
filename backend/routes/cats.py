@@ -108,6 +108,8 @@ def get_cat(cat_id):
                 'is_friendly': cat.is_friendly,
                 'rating': cat.rating,
                 'review_count': cat.review_count,
+                'created_by': cat.created_by,
+                'creator_username': cat.creator.username if cat.creator else None,
                 'photos': [{
                     'id': photo.id,
                     'filename': photo.filename,
@@ -163,7 +165,10 @@ def create_cat():
         
         validated_data = cat_schema.load(cat_data)
         
-        new_cat = Cat(**validated_data)
+        # Get current user
+        user_id = int(get_jwt_identity())
+        
+        new_cat = Cat(**validated_data, created_by=user_id)
         db.session.add(new_cat)
         db.session.commit()
         
@@ -192,11 +197,17 @@ def create_cat():
 def update_cat(cat_id):
     try:
         cat = Cat.query.get_or_404(cat_id)
+        user_id = int(get_jwt_identity())
+        
+        # Check if user is the creator or admin
+        if cat.created_by != user_id:
+            return jsonify({'error': 'Unauthorized: You can only edit cats you created'}), 403
+        
         data = request.get_json()
         
         # Update fields
         for field, value in data.items():
-            if hasattr(cat, field):
+            if hasattr(cat, field) and field not in ['id', 'created_by', 'created_at']:
                 setattr(cat, field, value)
         
         db.session.commit()
@@ -209,6 +220,45 @@ def update_cat(cat_id):
                 'bodega_id': cat.bodega_id
             }
         }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Internal server error'}), 500
+
+@cats_bp.route('/<int:cat_id>', methods=['DELETE'])
+@jwt_required()
+def delete_cat(cat_id):
+    try:
+        cat = Cat.query.get_or_404(cat_id)
+        user_id = int(get_jwt_identity())
+        
+        # Check if user is the creator
+        if cat.created_by != user_id:
+            return jsonify({'error': 'Unauthorized: You can only delete cats you created'}), 403
+        
+        # Get associated bodega to update cat count
+        bodega = cat.bodega
+        
+        # Delete associated photos from filesystem
+        for photo in cat.photos:
+            try:
+                import os
+                file_path = os.path.join(current_app.root_path, 'uploads', 'cats', photo.filename)
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except Exception as e:
+                current_app.logger.error(f"Error deleting photo file: {e}")
+        
+        # Delete the cat
+        db.session.delete(cat)
+        db.session.commit()
+        
+        # Update bodega cat count
+        if bodega:
+            bodega.cat_count = len(bodega.cats)
+            db.session.commit()
+        
+        return jsonify({'message': 'Cat deleted successfully'}), 200
         
     except Exception as e:
         db.session.rollback()

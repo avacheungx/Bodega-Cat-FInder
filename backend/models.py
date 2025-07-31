@@ -19,6 +19,8 @@ class User(db.Model):
     saved_cats = db.relationship('SavedCat', backref='user', lazy=True)
     saved_bodegas = db.relationship('SavedBodega', backref='user', lazy=True)
     recently_viewed = db.relationship('RecentlyViewed', backref='user', lazy=True)
+    created_cats = db.relationship('Cat', backref='creator', lazy=True, foreign_keys='Cat.created_by')
+    created_bodegas = db.relationship('Bodega', backref='creator', lazy=True, foreign_keys='Bodega.created_by')
     
     def __repr__(self):
         return f'<User {self.username}>'
@@ -38,6 +40,7 @@ class Bodega(db.Model):
     review_count = db.Column(db.Integer, default=0)
     cat_count = db.Column(db.Integer, default=0)
     is_verified = db.Column(db.Boolean, default=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -66,6 +69,7 @@ class Cat(db.Model):
     is_active = db.Column(db.Boolean, default=True)
     rating = db.Column(db.Float, default=0.0)
     review_count = db.Column(db.Integer, default=0)
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

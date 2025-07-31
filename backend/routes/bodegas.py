@@ -97,6 +97,8 @@ def get_bodega(bodega_id):
                 'review_count': bodega.review_count,
                 'cat_count': bodega.cat_count,
                 'is_verified': bodega.is_verified,
+                'created_by': bodega.created_by,
+                'creator_username': bodega.creator.username if bodega.creator else None,
                 'cats': [{
                     'id': cat.id,
                     'name': cat.name,
@@ -131,7 +133,10 @@ def create_bodega():
         data = request.get_json()
         validated_data = bodega_schema.load(data)
         
-        new_bodega = Bodega(**validated_data)
+        # Get current user
+        user_id = int(get_jwt_identity())
+        
+        new_bodega = Bodega(**validated_data, created_by=user_id)
         db.session.add(new_bodega)
         db.session.commit()
         
@@ -155,11 +160,17 @@ def create_bodega():
 def update_bodega(bodega_id):
     try:
         bodega = Bodega.query.get_or_404(bodega_id)
+        user_id = int(get_jwt_identity())
+        
+        # Check if user is the creator
+        if bodega.created_by != user_id:
+            return jsonify({'error': 'Unauthorized: You can only edit bodegas you created'}), 403
+        
         data = request.get_json()
         
         # Update fields
         for field, value in data.items():
-            if hasattr(bodega, field):
+            if hasattr(bodega, field) and field not in ['id', 'created_by', 'created_at']:
                 setattr(bodega, field, value)
         
         db.session.commit()
@@ -172,6 +183,48 @@ def update_bodega(bodega_id):
                 'address': bodega.address
             }
         }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': 'Internal server error'}), 500
+
+@bodegas_bp.route('/<int:bodega_id>', methods=['DELETE'])
+@jwt_required()
+def delete_bodega(bodega_id):
+    try:
+        bodega = Bodega.query.get_or_404(bodega_id)
+        user_id = int(get_jwt_identity())
+        
+        # Check if user is the creator
+        if bodega.created_by != user_id:
+            return jsonify({'error': 'Unauthorized: You can only delete bodegas you created'}), 403
+        
+        # Delete associated photos from filesystem
+        for photo in bodega.photos:
+            try:
+                import os
+                file_path = os.path.join(current_app.root_path, 'uploads', 'bodegas', photo.filename)
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+            except Exception as e:
+                current_app.logger.error(f"Error deleting photo file: {e}")
+        
+        # Delete associated cats' photos
+        for cat in bodega.cats:
+            for photo in cat.photos:
+                try:
+                    import os
+                    file_path = os.path.join(current_app.root_path, 'uploads', 'cats', photo.filename)
+                    if os.path.exists(file_path):
+                        os.remove(file_path)
+                except Exception as e:
+                    current_app.logger.error(f"Error deleting cat photo file: {e}")
+        
+        # Delete the bodega (this will cascade delete cats due to foreign key)
+        db.session.delete(bodega)
+        db.session.commit()
+        
+        return jsonify({'message': 'Bodega deleted successfully'}), 200
         
     except Exception as e:
         db.session.rollback()

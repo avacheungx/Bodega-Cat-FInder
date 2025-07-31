@@ -1,14 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, MapPin, Filter, Star, Heart } from 'lucide-react';
+import { Search, MapPin, Filter, Star, Heart, X, ChevronDown, ChevronUp } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { GoogleMap } from '../components/GoogleMap';
+import { MapFallback } from '../components/MapFallback';
+import { isGoogleMapsConfigured } from '../utils/maps';
 
 interface Cat {
   id: number;
   name: string;
   bodega_name: string;
   address: string;
+  latitude: number;
+  longitude: number;
   description: string;
   age: string;
   breed: string;
@@ -26,12 +31,40 @@ interface Bodega {
   id: number;
   name: string;
   address: string;
+  latitude: number;
+  longitude: number;
   description: string;
   rating: number;
   review_count: number;
   cat_count: number;
   is_verified: boolean;
   primary_photo: string | null;
+}
+
+interface FilterOptions {
+  breeds: string[];
+  personalities: string[];
+  rating_range: {
+    min: number;
+    max: number;
+    average: number;
+  };
+}
+
+interface CatFilters {
+  breed: string;
+  personality: string;
+  min_rating: number;
+  max_rating: number;
+  is_friendly: boolean | null;
+}
+
+interface BodegaFilters {
+  min_cats: number;
+  max_cats: number;
+  min_rating: number;
+  max_rating: number;
+  verified_only: boolean;
 }
 
 export const SearchPage: React.FC = () => {
@@ -41,11 +74,52 @@ export const SearchPage: React.FC = () => {
   const [bodegas, setBodegas] = useState<Bodega[]>([]);
   const [loading, setLoading] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [filterOptions, setFilterOptions] = useState<FilterOptions | null>(null);
+  const [loadingFilters, setLoadingFilters] = useState(false);
+  
+  // Filter states
+  const [catFilters, setCatFilters] = useState<CatFilters>({
+    breed: '',
+    personality: '',
+    min_rating: 0,
+    max_rating: 5,
+    is_friendly: null
+  });
+  
+  const [bodegaFilters, setBodegaFilters] = useState<BodegaFilters>({
+    min_cats: 0,
+    max_cats: 100,
+    min_rating: 0,
+    max_rating: 5,
+    verified_only: false
+  });
+
+  // Load filter options
+  const loadFilterOptions = async () => {
+    setLoadingFilters(true);
+    try {
+      const response = await axios.get('/api/search/filters');
+      setFilterOptions(response.data);
+    } catch (error) {
+      toast.error('Failed to load filter options');
+    } finally {
+      setLoadingFilters(false);
+    }
+  };
 
   const searchCats = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`/api/search/cats?q=${searchTerm}`);
+      const params = new URLSearchParams({
+        q: searchTerm,
+        ...(catFilters.breed && { breed: catFilters.breed }),
+        ...(catFilters.personality && { personality: catFilters.personality }),
+        ...(catFilters.min_rating > 0 && { min_rating: catFilters.min_rating.toString() }),
+        ...(catFilters.max_rating < 5 && { max_rating: catFilters.max_rating.toString() }),
+        ...(catFilters.is_friendly !== null && { is_friendly: catFilters.is_friendly.toString() })
+      });
+      
+      const response = await axios.get(`/api/search/cats?${params}`);
       setCats(response.data.cats);
     } catch (error) {
       toast.error('Failed to search cats');
@@ -57,7 +131,16 @@ export const SearchPage: React.FC = () => {
   const searchBodegas = async () => {
     setLoading(true);
     try {
-      const response = await axios.get(`/api/search/bodegas?q=${searchTerm}`);
+      const params = new URLSearchParams({
+        q: searchTerm,
+        ...(bodegaFilters.min_cats > 0 && { min_cats: bodegaFilters.min_cats.toString() }),
+        ...(bodegaFilters.max_cats < 100 && { max_cats: bodegaFilters.max_cats.toString() }),
+        ...(bodegaFilters.min_rating > 0 && { min_rating: bodegaFilters.min_rating.toString() }),
+        ...(bodegaFilters.max_rating < 5 && { max_rating: bodegaFilters.max_rating.toString() }),
+        ...(bodegaFilters.verified_only && { verified_only: 'true' })
+      });
+      
+      const response = await axios.get(`/api/search/bodegas?${params}`);
       setBodegas(response.data.bodegas);
     } catch (error) {
       toast.error('Failed to search bodegas');
@@ -75,10 +158,58 @@ export const SearchPage: React.FC = () => {
     }
   };
 
+  const clearFilters = () => {
+    setCatFilters({
+      breed: '',
+      personality: '',
+      min_rating: 0,
+      max_rating: 5,
+      is_friendly: null
+    });
+    setBodegaFilters({
+      min_cats: 0,
+      max_cats: 100,
+      min_rating: 0,
+      max_rating: 5,
+      verified_only: false
+    });
+  };
+
+  const applyFilters = () => {
+    if (searchType === 'cats') {
+      searchCats();
+    } else {
+      searchBodegas();
+    }
+  };
+
   useEffect(() => {
-    // Load initial data
+    // Load initial data and filter options
     searchCats();
+    loadFilterOptions();
   }, []);
+
+  useEffect(() => {
+    // Apply filters when search type changes
+    if (searchType === 'cats') {
+      searchCats();
+    } else {
+      searchBodegas();
+    }
+  }, [searchType]);
+
+  // Auto-apply filters when they change (with debounce)
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (searchType === 'cats') {
+        searchCats();
+      } else {
+        searchBodegas();
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timeoutId);
+  }, [catFilters, bodegaFilters]);
 
   const renderStars = (rating: number) => {
     return Array.from({ length: 5 }, (_, i) => (
@@ -89,6 +220,17 @@ export const SearchPage: React.FC = () => {
         }`}
       />
     ));
+  };
+
+  const hasActiveFilters = () => {
+    if (searchType === 'cats') {
+      return catFilters.breed || catFilters.personality || catFilters.min_rating > 0 || 
+             catFilters.max_rating < 5 || catFilters.is_friendly !== null;
+    } else {
+      return bodegaFilters.min_cats > 0 || bodegaFilters.max_cats < 100 || 
+             bodegaFilters.min_rating > 0 || bodegaFilters.max_rating < 5 || 
+             bodegaFilters.verified_only;
+    }
   };
 
   return (
@@ -107,6 +249,7 @@ export const SearchPage: React.FC = () => {
               <Search className="h-5 w-5 text-gray-400" />
             </div>
             <input
+              id="search-input"
               type="text"
               placeholder="Search for cats, bodegas, or locations..."
               className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
@@ -117,10 +260,17 @@ export const SearchPage: React.FC = () => {
           <button
             type="button"
             onClick={() => setShowFilters(!showFilters)}
-            className="px-4 py-3 border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+            className={`px-4 py-3 border rounded-lg hover:bg-gray-50 flex items-center gap-2 ${
+              hasActiveFilters() ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-300'
+            }`}
           >
             <Filter className="w-5 h-5" />
             Filters
+            {hasActiveFilters() && (
+              <span className="bg-primary-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                !
+              </span>
+            )}
           </button>
           <button
             type="submit"
@@ -134,10 +284,7 @@ export const SearchPage: React.FC = () => {
         {/* Search Type Toggle */}
         <div className="mt-4 flex gap-4">
           <button
-            onClick={() => {
-              setSearchType('cats');
-              searchCats();
-            }}
+            onClick={() => setSearchType('cats')}
             className={`px-4 py-2 rounded-lg ${
               searchType === 'cats'
                 ? 'bg-primary-600 text-white'
@@ -147,10 +294,7 @@ export const SearchPage: React.FC = () => {
             Search Cats
           </button>
           <button
-            onClick={() => {
-              setSearchType('bodegas');
-              searchBodegas();
-            }}
+            onClick={() => setSearchType('bodegas')}
             className={`px-4 py-2 rounded-lg ${
               searchType === 'bodegas'
                 ? 'bg-primary-600 text-white'
@@ -160,29 +304,398 @@ export const SearchPage: React.FC = () => {
             Search Bodegas
           </button>
         </div>
+
+        {/* Active Filters Display */}
+        {hasActiveFilters() && (
+          <div className="mt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm font-medium text-gray-700">Active Filters:</span>
+              <button
+                onClick={clearFilters}
+                className="text-xs text-primary-600 hover:text-primary-700"
+              >
+                Clear All
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              {searchType === 'cats' && (
+                <>
+                  {catFilters.breed && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-800 text-xs rounded-full">
+                      Breed: {catFilters.breed}
+                      <button
+                        onClick={() => setCatFilters({ ...catFilters, breed: '' })}
+                        className="hover:text-primary-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {catFilters.personality && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-800 text-xs rounded-full">
+                      Personality: {catFilters.personality}
+                      <button
+                        onClick={() => setCatFilters({ ...catFilters, personality: '' })}
+                        className="hover:text-primary-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {catFilters.is_friendly !== null && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-800 text-xs rounded-full">
+                      {catFilters.is_friendly ? 'Friendly Only' : 'Not Friendly'}
+                      <button
+                        onClick={() => setCatFilters({ ...catFilters, is_friendly: null })}
+                        className="hover:text-primary-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {(catFilters.min_rating > 0 || catFilters.max_rating < 5) && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-800 text-xs rounded-full">
+                      Rating: {catFilters.min_rating}-{catFilters.max_rating}
+                      <button
+                        onClick={() => setCatFilters({ ...catFilters, min_rating: 0, max_rating: 5 })}
+                        className="hover:text-primary-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                </>
+              )}
+              {searchType === 'bodegas' && (
+                <>
+                  {(bodegaFilters.min_cats > 0 || bodegaFilters.max_cats < 100) && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-800 text-xs rounded-full">
+                      Cats: {bodegaFilters.min_cats}-{bodegaFilters.max_cats}
+                      <button
+                        onClick={() => setBodegaFilters({ ...bodegaFilters, min_cats: 0, max_cats: 100 })}
+                        className="hover:text-primary-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {(bodegaFilters.min_rating > 0 || bodegaFilters.max_rating < 5) && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-800 text-xs rounded-full">
+                      Rating: {bodegaFilters.min_rating}-{bodegaFilters.max_rating}
+                      <button
+                        onClick={() => setBodegaFilters({ ...bodegaFilters, min_rating: 0, max_rating: 5 })}
+                        className="hover:text-primary-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                  {bodegaFilters.verified_only && (
+                    <span className="inline-flex items-center gap-1 px-2 py-1 bg-primary-100 text-primary-800 text-xs rounded-full">
+                      Verified Only
+                      <button
+                        onClick={() => setBodegaFilters({ ...bodegaFilters, verified_only: false })}
+                        className="hover:text-primary-600"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Filters Panel */}
+        {showFilters && (
+          <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">Filters</h3>
+              <div className="flex gap-2">
+                <button
+                  onClick={clearFilters}
+                  className="text-sm text-gray-500 hover:text-gray-700"
+                >
+                  Clear All
+                </button>
+                <button
+                  onClick={applyFilters}
+                  className="px-3 py-1 bg-primary-600 text-white text-sm rounded hover:bg-primary-700"
+                >
+                  Apply Filters
+                </button>
+              </div>
+            </div>
+
+            {searchType === 'cats' ? (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Breed Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Breed</label>
+                  <select
+                    value={catFilters.breed}
+                    onChange={(e) => setCatFilters({ ...catFilters, breed: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">All Breeds</option>
+                    {filterOptions?.breeds.map((breed) => (
+                      <option key={breed} value={breed}>{breed}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Personality Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Personality</label>
+                  <select
+                    value={catFilters.personality}
+                    onChange={(e) => setCatFilters({ ...catFilters, personality: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">All Personalities</option>
+                    {filterOptions?.personalities.map((personality) => (
+                      <option key={personality} value={personality}>{personality}</option>
+                    ))}
+                  </select>
+                </div>
+
+                {/* Friendliness Filter */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Friendliness</label>
+                  <select
+                    value={catFilters.is_friendly === null ? '' : catFilters.is_friendly.toString()}
+                    onChange={(e) => setCatFilters({ 
+                      ...catFilters, 
+                      is_friendly: e.target.value === '' ? null : e.target.value === 'true' 
+                    })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  >
+                    <option value="">All Cats</option>
+                    <option value="true">Friendly Only</option>
+                    <option value="false">Not Friendly</option>
+                  </select>
+                </div>
+
+                {/* Rating Range */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Rating Range: {catFilters.min_rating} - {catFilters.max_rating}
+                  </label>
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Min Rating</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="5"
+                        step="0.5"
+                        value={catFilters.min_rating}
+                        onChange={(e) => setCatFilters({ 
+                          ...catFilters, 
+                          min_rating: parseFloat(e.target.value) 
+                        })}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Max Rating</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="5"
+                        step="0.5"
+                        value={catFilters.max_rating}
+                        onChange={(e) => setCatFilters({ 
+                          ...catFilters, 
+                          max_rating: parseFloat(e.target.value) 
+                        })}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {/* Cat Count Range */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Cat Count: {bodegaFilters.min_cats} - {bodegaFilters.max_cats}
+                  </label>
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Min Cats</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="20"
+                        step="1"
+                        value={bodegaFilters.min_cats}
+                        onChange={(e) => setBodegaFilters({ 
+                          ...bodegaFilters, 
+                          min_cats: parseInt(e.target.value) 
+                        })}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Max Cats</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="20"
+                        step="1"
+                        value={bodegaFilters.max_cats}
+                        onChange={(e) => setBodegaFilters({ 
+                          ...bodegaFilters, 
+                          max_cats: parseInt(e.target.value) 
+                        })}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Rating Range */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Rating Range: {bodegaFilters.min_rating} - {bodegaFilters.max_rating}
+                  </label>
+                  <div className="flex gap-4">
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Min Rating</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="5"
+                        step="0.5"
+                        value={bodegaFilters.min_rating}
+                        onChange={(e) => setBodegaFilters({ 
+                          ...bodegaFilters, 
+                          min_rating: parseFloat(e.target.value) 
+                        })}
+                        className="w-full"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-xs text-gray-500 mb-1">Max Rating</label>
+                      <input
+                        type="range"
+                        min="0"
+                        max="5"
+                        step="0.5"
+                        value={bodegaFilters.max_rating}
+                        onChange={(e) => setBodegaFilters({ 
+                          ...bodegaFilters, 
+                          max_rating: parseFloat(e.target.value) 
+                        })}
+                        className="w-full"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Verified Only */}
+                <div>
+                  <label className="flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={bodegaFilters.verified_only}
+                      onChange={(e) => setBodegaFilters({ 
+                        ...bodegaFilters, 
+                        verified_only: e.target.checked 
+                      })}
+                      className="mr-2"
+                    />
+                    <span className="text-sm font-medium text-gray-700">Verified Bodegas Only</span>
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
-        {/* Map Placeholder */}
+        {/* Interactive Map */}
         <div className="lg:col-span-2">
-          <div className="bg-gray-100 rounded-lg p-8 text-center">
-            <MapPin className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-700 mb-2">Interactive Map</h3>
-            <p className="text-gray-600 mb-4">
-              Google Maps integration will be displayed here when you add your API key.
-            </p>
-            <div className="bg-white rounded-lg p-4 border-2 border-dashed border-gray-300">
-              <p className="text-sm text-gray-500">
-                Map will show cat and bodega locations with markers and directions.
-              </p>
-            </div>
-          </div>
+          {isGoogleMapsConfigured() ? (
+            <GoogleMap
+              locations={[
+                ...cats.map(cat => ({
+                  id: cat.id,
+                  name: cat.name,
+                  latitude: cat.latitude,
+                  longitude: cat.longitude,
+                  type: 'cat' as const,
+                  address: cat.address,
+                  rating: cat.rating
+                })),
+                ...bodegas.map(bodega => ({
+                  id: bodega.id,
+                  name: bodega.name,
+                  latitude: bodega.latitude,
+                  longitude: bodega.longitude,
+                  type: 'bodega' as const,
+                  address: bodega.address,
+                  rating: bodega.rating
+                }))
+              ]}
+              showSearchBox={true}
+              height="500px"
+              onLocationClick={(location) => {
+                if (location.type === 'cat') {
+                  window.location.href = `/cat/${location.id}`;
+                } else {
+                  window.location.href = `/bodega/${location.id}`;
+                }
+              }}
+              onSearchResult={(place) => {
+                if (place.formatted_address) {
+                  setSearchTerm(place.formatted_address);
+                  toast.success(`Searching near ${place.formatted_address}`);
+                }
+              }}
+            />
+                      ) : (
+              <MapFallback 
+                height="500px"
+                locations={[
+                  ...cats.map(cat => ({
+                    id: cat.id,
+                    name: cat.name,
+                    latitude: cat.latitude,
+                    longitude: cat.longitude,
+                    type: 'cat' as const,
+                    address: cat.address,
+                    rating: cat.rating
+                  })),
+                  ...bodegas.map(bodega => ({
+                    id: bodega.id,
+                    name: bodega.name,
+                    latitude: bodega.latitude,
+                    longitude: bodega.longitude,
+                    type: 'bodega' as const,
+                    address: bodega.address,
+                    rating: bodega.rating
+                  }))
+                ]}
+                onSearchClick={() => {
+                  // Focus on the search input
+                  const searchInput = document.getElementById('search-input') as HTMLInputElement;
+                  if (searchInput) {
+                    searchInput.focus();
+                  }
+                }}
+              />
+            )}
         </div>
 
         {/* Results */}
         <div className="lg:col-span-1">
           <h2 className="text-xl font-semibold mb-4">
-            {searchType === 'cats' ? 'Cats Found' : 'Bodegas Found'}
+            {searchType === 'cats' ? `Cats Found (${cats.length})` : `Bodegas Found (${bodegas.length})`}
           </h2>
           
           {searchType === 'cats' ? (

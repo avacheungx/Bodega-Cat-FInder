@@ -45,6 +45,7 @@ def create_app():
     from routes.search import search_bp
     from routes.reviews import reviews_bp
     from routes.users import users_bp
+    from routes.photos import photos_bp
     
     # Initialize auth bcrypt
     init_bcrypt(app)
@@ -55,11 +56,18 @@ def create_app():
     app.register_blueprint(search_bp, url_prefix='/api/search')
     app.register_blueprint(reviews_bp, url_prefix='/api/reviews')
     app.register_blueprint(users_bp, url_prefix='/api/users')
+    app.register_blueprint(photos_bp, url_prefix='/api/photos')
     
     # Health check endpoint
     @app.route('/api/health')
     def health_check():
         return jsonify({'status': 'healthy', 'message': 'Bodega Cat Finder API is running'})
+    
+    # Serve uploaded files
+    @app.route('/uploads/<path:filename>')
+    def uploaded_file(filename):
+        from flask import send_from_directory
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
     
     # Error handlers
     @app.errorhandler(404)

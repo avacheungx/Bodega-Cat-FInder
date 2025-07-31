@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, MapPin, Star, Trash2 } from 'lucide-react';
+import { Clock, MapPin, Star } from 'lucide-react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
 import { useAuth } from '../contexts/AuthContext';
@@ -20,6 +20,7 @@ interface RecentlyViewedItem {
 export const RecentlyViewedPage: React.FC = () => {
   const [recentItems, setRecentItems] = useState<RecentlyViewedItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [clearing, setClearing] = useState(false);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -42,12 +43,15 @@ export const RecentlyViewedPage: React.FC = () => {
   };
 
   const clearRecentlyViewed = async () => {
+    setClearing(true);
     try {
-      await axios.delete('/api/users/recently-viewed');
+      await axios.delete('/api/users/clear-recently-viewed');
       setRecentItems([]);
       toast.success('Recently viewed items cleared');
     } catch (error) {
       toast.error('Failed to clear recently viewed items');
+    } finally {
+      setClearing(false);
     }
   };
 
@@ -109,9 +113,10 @@ export const RecentlyViewedPage: React.FC = () => {
         {recentItems && recentItems.length > 0 && (
           <button
             onClick={clearRecentlyViewed}
-            className="px-4 py-2 text-sm text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg"
+            disabled={clearing}
+            className="px-4 py-2 text-sm text-red-600 hover:text-red-700 border border-red-200 hover:border-red-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Clear History
+            {clearing ? 'Clearing...' : 'Clear History'}
           </button>
         )}
       </div>

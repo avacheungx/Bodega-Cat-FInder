@@ -36,6 +36,40 @@ A web application to help users find bodegas, delis, and shops in New York City 
    # Edit .env with your Google Maps API key and other credentials
    ```
 
+3. **Configure Google Maps API Key**
+   
+   The application requires a valid Google Maps API key with the following services enabled:
+   
+   **Required Services:**
+   - Maps JavaScript API
+   - Places API
+   - Geocoding API
+   
+   **Setup Steps:**
+   1. Go to [Google Cloud Console](https://console.cloud.google.com/)
+   2. Create a new project or select an existing one
+   3. Enable the required APIs:
+      - Navigate to "APIs & Services" > "Library"
+      - Search for and enable "Maps JavaScript API"
+      - Search for and enable "Places API"
+      - Search for and enable "Geocoding API"
+   4. Create credentials:
+      - Go to "APIs & Services" > "Credentials"
+      - Click "Create Credentials" > "API Key"
+      - Copy the generated API key
+   5. Restrict the API key (recommended):
+      - Click on the created API key
+      - Under "Application restrictions", select "HTTP referrers"
+      - Add `localhost:3001/*` for development
+      - Under "API restrictions", select "Restrict key"
+      - Select the three APIs mentioned above
+   6. Update your `.env` file:
+      ```
+      GOOGLE_MAPS_API_KEY=your_actual_api_key_here
+      ```
+   
+   **Note:** The current API key in the `.env` file is a placeholder and will not work. You must replace it with your own valid API key.
+
 3. **Start with Docker**
    ```bash
    docker-compose up --build
