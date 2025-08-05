@@ -1,10 +1,14 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Heart, Clock, Upload, Search, Star } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
+  useEffect(() => {
+    console.log('HomePage loaded');
+  }, []);
+
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto px-4 py-8">
       {/* Hero Section */}
       <div className="text-center mb-12">
         <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
@@ -15,11 +19,17 @@ export const HomePage: React.FC = () => {
           Connect with the feline friends that make our neighborhoods special.
         </p>
         <div className="flex flex-col sm:flex-row gap-4 justify-center">
-          <Link to="/search" className="btn-primary text-lg px-8 py-3">
-            <Search className="w-5 h-5 inline mr-2" />
+          <Link 
+            to="/search" 
+            className="inline-flex items-center px-8 py-3 bg-primary-600 hover:bg-primary-700 text-white font-medium rounded-lg transition-colors duration-200 text-lg"
+          >
+            <Search className="w-5 h-5 mr-2" />
             Start Exploring
           </Link>
-          <Link to="/register" className="btn-secondary text-lg px-8 py-3">
+          <Link 
+            to="/register" 
+            className="inline-flex items-center px-8 py-3 bg-gray-200 hover:bg-gray-300 text-gray-800 font-medium rounded-lg transition-colors duration-200 text-lg"
+          >
             Join the Community
           </Link>
         </div>
@@ -27,7 +37,7 @@ export const HomePage: React.FC = () => {
 
       {/* Features Grid */}
       <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-        <div className="card text-center">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
           <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mx-auto mb-4">
             <MapPin className="w-6 h-6 text-primary-600" />
           </div>
@@ -35,7 +45,7 @@ export const HomePage: React.FC = () => {
           <p className="text-gray-600">Discover bodega cats in your neighborhood using our interactive map.</p>
         </div>
 
-        <div className="card text-center">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
           <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mx-auto mb-4">
             <Heart className="w-6 h-6 text-primary-600" />
           </div>
@@ -43,7 +53,7 @@ export const HomePage: React.FC = () => {
           <p className="text-gray-600">Keep track of your favorite cats and bodegas for future visits.</p>
         </div>
 
-        <div className="card text-center">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
           <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mx-auto mb-4">
             <Upload className="w-6 h-6 text-primary-600" />
           </div>
@@ -51,7 +61,7 @@ export const HomePage: React.FC = () => {
           <p className="text-gray-600">Add new cats and bodegas to help grow our community database.</p>
         </div>
 
-        <div className="card text-center">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
           <div className="w-12 h-12 bg-primary-100 rounded-lg flex items-center justify-center mx-auto mb-4">
             <Star className="w-6 h-6 text-primary-600" />
           </div>
@@ -62,7 +72,7 @@ export const HomePage: React.FC = () => {
 
       {/* Quick Actions */}
       <div className="grid md:grid-cols-3 gap-6">
-        <Link to="/search" className="card hover:shadow-md transition-shadow duration-200">
+        <Link to="/search" className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center space-x-3">
             <MapPin className="w-8 h-8 text-primary-600" />
             <div>
@@ -72,7 +82,7 @@ export const HomePage: React.FC = () => {
           </div>
         </Link>
 
-        <Link to="/recently-viewed" className="card hover:shadow-md transition-shadow duration-200">
+        <Link to="/recently-viewed" className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center space-x-3">
             <Clock className="w-8 h-8 text-primary-600" />
             <div>
@@ -82,7 +92,7 @@ export const HomePage: React.FC = () => {
           </div>
         </Link>
 
-        <Link to="/upload" className="card hover:shadow-md transition-shadow duration-200">
+        <Link to="/upload" className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow duration-200">
           <div className="flex items-center space-x-3">
             <Upload className="w-8 h-8 text-primary-600" />
             <div>
