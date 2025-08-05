@@ -66,9 +66,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     const checkAuth = async () => {
       if (token) {
         try {
-          const response = await axios.get('/api/auth/profile');
-          setUser(response.data.user);
+          // Only try to check auth if we have a backend URL
+          if (axios.defaults.baseURL) {
+            const response = await axios.get('/api/auth/profile');
+            setUser(response.data.user);
+          } else {
+            // No backend available, just clear the token
+            localStorage.removeItem('token');
+            setToken(null);
+          }
         } catch (error) {
+          console.warn('Auth check failed:', error);
           localStorage.removeItem('token');
           setToken(null);
         }
@@ -76,7 +84,14 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoading(false);
     };
 
-    checkAuth();
+    // Add a timeout to prevent hanging
+    const timeoutId = setTimeout(() => {
+      setLoading(false);
+    }, 3000); // 3 second timeout
+
+    checkAuth().finally(() => {
+      clearTimeout(timeoutId);
+    });
   }, [token]);
 
   const login = async (username: string, password: string) => {
