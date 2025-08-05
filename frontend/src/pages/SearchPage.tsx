@@ -86,7 +86,9 @@ export const SearchPage: React.FC = () => {
   // Ensure axios base URL is set immediately
   useEffect(() => {
     if (!axios.defaults.baseURL) {
-      axios.defaults.baseURL = 'http://localhost:5001';
+      const apiUrl = process.env.REACT_APP_API_URL || 
+        (window.location.hostname === 'localhost' ? 'http://localhost:5001' : 'https://your-backend-url.herokuapp.com');
+      axios.defaults.baseURL = apiUrl;
       console.log('Setting axios base URL in SearchPage:', axios.defaults.baseURL);
     }
   }, []);

@@ -39,7 +39,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Set up axios defaults
   useEffect(() => {
     // Set base URL for API calls - use environment variable or fallback to localhost
-    const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5001';
+    const apiUrl = process.env.REACT_APP_API_URL || 
+      (window.location.hostname === 'localhost' ? 'http://localhost:5001' : 'https://your-backend-url.herokuapp.com');
     axios.defaults.baseURL = apiUrl;
     console.log('Axios base URL set to:', axios.defaults.baseURL);
     

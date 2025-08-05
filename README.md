@@ -59,7 +59,7 @@ npm start
 
 ## Deployment
 
-### GitHub Pages (Frontend)
+### Frontend (GitHub Pages)
 
 The frontend is automatically deployed to GitHub Pages when you push to the main branch.
 
@@ -75,13 +75,68 @@ npm run deploy
 
 For the backend, you'll need to deploy to a service that supports Python/Flask:
 
-- **Heroku**: Easy deployment with PostgreSQL add-on
-- **Railway**: Simple deployment with database
-- **Render**: Free tier with PostgreSQL
-- **DigitalOcean App Platform**: Managed deployment
+#### Option 1: Render (Recommended - Free)
+1. Go to [Render](https://render.com/) and create an account
+2. Connect your GitHub repository
+3. Create a new Web Service
+4. Set build command: `pip install -r requirements.txt`
+5. Set start command: `gunicorn app:app`
+6. Add environment variables:
+   - `DATABASE_URL`: Your PostgreSQL connection string
+   - `JWT_SECRET_KEY`: A secure random string
+   - `GOOGLE_MAPS_API_KEY`: Your Google Maps API key
 
-After deploying the backend, set the `REACT_APP_API_URL` environment variable in your GitHub repository secrets.
+#### Option 2: Railway
+1. Go to [Railway](https://railway.app/) and create an account
+2. Connect your GitHub repository
+3. Add a PostgreSQL database
+4. Deploy the backend service
+5. Set environment variables as above
+
+#### Option 3: Heroku
+1. Create a Heroku account and install CLI
+2. Create a new app: `heroku create your-app-name`
+3. Add PostgreSQL: `heroku addons:create heroku-postgresql:mini`
+4. Set environment variables:
+   ```bash
+   heroku config:set JWT_SECRET_KEY=your-secret-key
+   heroku config:set GOOGLE_MAPS_API_KEY=your-api-key
+   ```
+5. Deploy: `git push heroku main`
+
+### After Backend Deployment
+
+1. **Update Frontend API URL**: Set the `REACT_APP_API_URL` environment variable in your GitHub repository:
+   - Go to your repository Settings → Secrets and variables → Actions
+   - Add `REACT_APP_API_URL` with your backend URL (e.g., `https://your-app.onrender.com`)
+
+2. **Redeploy Frontend**: The frontend will automatically redeploy with the new API URL
+
+## Troubleshooting
+
+### GitHub Pages Issues
+
+If you see network errors or the app doesn't load properly:
+
+1. **Check Browser Console**: Look for CORS errors or failed API calls
+2. **Verify Backend URL**: Ensure `REACT_APP_API_URL` is set correctly
+3. **Clear Browser Cache**: Hard refresh (Ctrl+F5) or clear cache
+4. **Check Backend Status**: Verify your backend is running and accessible
+
+### Common Issues
+
+- **"Failed to fetch" errors**: Usually means the backend URL is incorrect or the backend is down
+- **CORS errors**: Backend needs to allow requests from your frontend domain
+- **404 errors on navigation**: This should be fixed with the 404.html file included in this repo
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Test locally
+5. Submit a pull request
 
 ## License
 
-MIT License
+MIT License - see LICENSE file for details
