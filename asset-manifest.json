@@ -1,13 +1,13 @@
 {
   "files": {
-    "main.css": "/Bodega-Cat-FInder/static/css/main.220a4fb1.css",
-    "main.js": "/Bodega-Cat-FInder/static/js/main.7ef07c17.js",
+    "main.css": "/Bodega-Cat-FInder/static/css/main.5b8251d4.css",
+    "main.js": "/Bodega-Cat-FInder/static/js/main.ac9a5c23.js",
     "index.html": "/Bodega-Cat-FInder/index.html",
-    "main.220a4fb1.css.map": "/Bodega-Cat-FInder/static/css/main.220a4fb1.css.map",
-    "main.7ef07c17.js.map": "/Bodega-Cat-FInder/static/js/main.7ef07c17.js.map"
+    "main.5b8251d4.css.map": "/Bodega-Cat-FInder/static/css/main.5b8251d4.css.map",
+    "main.ac9a5c23.js.map": "/Bodega-Cat-FInder/static/js/main.ac9a5c23.js.map"
   },
   "entrypoints": [
-    "static/css/main.220a4fb1.css",
-    "static/js/main.7ef07c17.js"
+    "static/css/main.5b8251d4.css",
+    "static/js/main.ac9a5c23.js"
   ]
 }
