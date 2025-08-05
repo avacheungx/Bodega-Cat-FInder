@@ -87,9 +87,14 @@ export const SearchPage: React.FC = () => {
   useEffect(() => {
     if (!axios.defaults.baseURL) {
       const apiUrl = process.env.REACT_APP_API_URL || 
-        (window.location.hostname === 'localhost' ? 'http://localhost:5001' : 'https://your-backend-url.herokuapp.com');
-      axios.defaults.baseURL = apiUrl;
-      console.log('Setting axios base URL in SearchPage:', axios.defaults.baseURL);
+        (window.location.hostname === 'localhost' ? 'http://localhost:5001' : null);
+      
+      if (apiUrl) {
+        axios.defaults.baseURL = apiUrl;
+        console.log('Setting axios base URL in SearchPage:', axios.defaults.baseURL);
+      } else {
+        console.warn('No API URL configured for SearchPage');
+      }
     }
   }, []);
   
@@ -183,13 +188,15 @@ export const SearchPage: React.FC = () => {
           url: error.config?.url,
           method: error.config?.method
         });
-        if (error.response?.status === 404) {
-          toast.error('Filter options endpoint not found. Please check the backend configuration.');
+        
+        // Check if it's a network error (no backend)
+        if (!error.response && error.code === 'ERR_NETWORK') {
+          toast.error('Backend not available. Please check if the backend is deployed and REACT_APP_API_URL is set correctly.');
         } else {
-          toast.error(`Failed to load filter options: ${error.response?.status || 'Network error'}`);
+          toast.error('Failed to load filter options: ' + (error.response?.data?.error || error.message));
         }
       } else {
-        toast.error('Failed to load filter options');
+        toast.error('Failed to load filter options: Network error');
       }
     } finally {
       setLoadingFilters(false);
@@ -250,9 +257,15 @@ export const SearchPage: React.FC = () => {
           baseURL: error.config?.baseURL,
           method: error.config?.method
         });
-        toast.error(`Failed to search cats: ${error.response?.status || 'Network error'}`);
+        
+        // Check if it's a network error (no backend)
+        if (!error.response && error.code === 'ERR_NETWORK') {
+          toast.error('Backend not available. Please check if the backend is deployed and REACT_APP_API_URL is set correctly.');
+        } else {
+          toast.error('Failed to search cats: ' + (error.response?.data?.error || error.message));
+        }
       } else {
-        toast.error('Failed to search cats');
+        toast.error('Failed to search cats: Network error');
       }
     } finally {
       setLoading(false);
@@ -302,9 +315,14 @@ export const SearchPage: React.FC = () => {
     } catch (error: any) {
       console.error('Error searching bodegas:', error);
       if (axios.isAxiosError(error)) {
-        toast.error(`Failed to search bodegas: ${error.response?.status || 'Network error'}`);
+        // Check if it's a network error (no backend)
+        if (!error.response && error.code === 'ERR_NETWORK') {
+          toast.error('Backend not available. Please check if the backend is deployed and REACT_APP_API_URL is set correctly.');
+        } else {
+          toast.error('Failed to search bodegas: ' + (error.response?.data?.error || error.message));
+        }
       } else {
-        toast.error('Failed to search bodegas');
+        toast.error('Failed to search bodegas: Network error');
       }
     } finally {
       setLoading(false);
@@ -348,6 +366,12 @@ export const SearchPage: React.FC = () => {
   useEffect(() => {
     // Wait for auth to be ready and axios base URL to be set
     if (authLoading || !axios.defaults.baseURL) return;
+    
+    // Check if we have a valid API URL
+    if (!axios.defaults.baseURL) {
+      toast.error('No backend configured. Please set REACT_APP_API_URL environment variable.');
+      return;
+    }
     
     // Add a delay to ensure backend is ready before making API calls
     const timer = setTimeout(() => {
@@ -403,6 +427,40 @@ export const SearchPage: React.FC = () => {
              bodegaFilters.verified_only;
     }
   };
+
+  // Show backend not configured message
+  if (!axios.defaults.baseURL) {
+    return (
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <div className="text-center">
+          <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6">
+            <h2 className="text-xl font-semibold text-yellow-800 mb-2">Backend Not Configured</h2>
+            <p className="text-yellow-700 mb-4">
+              The app is trying to connect to a backend API that hasn't been deployed yet.
+            </p>
+            <div className="text-sm text-yellow-600 space-y-2">
+              <p><strong>To fix this:</strong></p>
+              <ol className="list-decimal list-inside space-y-1">
+                <li>Deploy the backend to a service like Render, Railway, or Heroku</li>
+                <li>Set the <code>REACT_APP_API_URL</code> environment variable in your GitHub repository</li>
+                <li>Redeploy the frontend</li>
+              </ol>
+            </div>
+            <div className="mt-4">
+              <a 
+                href="https://github.com/avacheungx/Bodega-Cat-FInder/blob/main/DEPLOYMENT.md" 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-primary-600 hover:text-primary-700 underline"
+              >
+                View detailed deployment instructions
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
