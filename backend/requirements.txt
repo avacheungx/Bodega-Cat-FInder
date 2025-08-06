@@ -2,7 +2,7 @@ Flask==2.3.3
 Flask-SQLAlchemy==3.0.5
 Flask-JWT-Extended==4.5.3
 Flask-CORS==4.0.0
-psycopg2-binary==2.9.9
+psycopg[binary]==3.1.18
 marshmallow==3.20.1
 requests==2.31.0
 python-dotenv==1.0.0
