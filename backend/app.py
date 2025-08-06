@@ -54,6 +54,53 @@ def create_app():
     def health_check():
         return jsonify({'status': 'healthy', 'message': 'Bodega Cat Finder API is running'})
     
+    # Debug endpoint to check database status
+    @app.route('/api/debug/db')
+    def debug_db():
+        try:
+            with app.app_context():
+                # Test database connection
+                db.engine.execute('SELECT 1')
+                
+                # Check if tables exist
+                from models import User, Cat, Bodega
+                user_count = User.query.count()
+                cat_count = Cat.query.count()
+                bodega_count = Bodega.query.count()
+                
+                return jsonify({
+                    'database_connected': True,
+                    'tables_exist': True,
+                    'user_count': user_count,
+                    'cat_count': cat_count,
+                    'bodega_count': bodega_count,
+                    'database_url': app.config['SQLALCHEMY_DATABASE_URI']
+                }), 200
+        except Exception as e:
+            return jsonify({
+                'database_connected': False,
+                'error': str(e),
+                'database_url': app.config['SQLALCHEMY_DATABASE_URI']
+            }), 500
+    
+    # Initialize database on startup
+    with app.app_context():
+        try:
+            db.create_all()
+            print("Database tables created successfully")
+            
+            # Check if we need to add sample data
+            from models import User
+            if not User.query.first():
+                print("Adding sample data...")
+                from init_db import init_db
+                init_db()
+                print("Sample data added successfully")
+            else:
+                print("Database already contains data")
+        except Exception as e:
+            print(f"Database initialization error: {e}")
+    
     # Serve uploaded files
     @app.route('/uploads/<path:filename>')
     def uploaded_file(filename):
