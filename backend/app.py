@@ -4,9 +4,15 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from dotenv import load_dotenv
 import os
+import hashlib
 
 # Load environment variables
 load_dotenv()
+
+def hash_password(password):
+    """Hash password using SHA-256 with salt"""
+    salt = os.getenv('PASSWORD_SALT', 'default-salt')
+    return hashlib.sha256((password + salt).encode()).hexdigest()
 
 # Initialize extensions
 db = SQLAlchemy()
@@ -96,9 +102,9 @@ def create_app():
                 
                 # Create sample users
                 users = [
-                    User(username='catlover', email='catlover@example.com', password_hash='dummy_hash'),
-                    User(username='bodegaexplorer', email='explorer@example.com', password_hash='dummy_hash'),
-                    User(username='nycvisitor', email='visitor@example.com', password_hash='dummy_hash'),
+                    User(username='catlover', email='catlover@example.com', password_hash=hash_password('password123')),
+                    User(username='bodegaexplorer', email='explorer@example.com', password_hash=hash_password('password123')),
+                    User(username='nycvisitor', email='visitor@example.com', password_hash=hash_password('password123')),
                 ]
                 
                 for user in users:
