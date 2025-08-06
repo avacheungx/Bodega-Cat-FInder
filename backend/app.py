@@ -18,14 +18,18 @@ from models import *
 def create_app():
     app = Flask(__name__)
     
-    # Configuration
+    # Configuration - Use SQLite for now to avoid psycopg2 issues
     database_url = os.getenv('DATABASE_URL', 'sqlite:///bodega_cats.db')
     
-    # Convert DATABASE_URL for psycopg3 if it's a PostgreSQL URL
-    if database_url.startswith('postgres://'):
-        database_url = database_url.replace('postgres://', 'postgresql://', 1)
+    # If DATABASE_URL is not set, use SQLite
+    if not database_url or database_url == 'sqlite:///bodega_cats.db':
+        app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///bodega_cats.db'
+    else:
+        # Convert DATABASE_URL for psycopg3 if it's a PostgreSQL URL
+        if database_url.startswith('postgres://'):
+            database_url = database_url.replace('postgres://', 'postgresql://', 1)
+        app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     
-    app.config['SQLALCHEMY_DATABASE_URI'] = database_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
         'connect_args': {
