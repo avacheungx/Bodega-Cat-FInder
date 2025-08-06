@@ -60,7 +60,7 @@ def create_app():
         try:
             with app.app_context():
                 # Test database connection
-                db.engine.execute('SELECT 1')
+                db.session.execute('SELECT 1')
                 
                 # Check if tables exist
                 from models import User, Cat, Bodega
