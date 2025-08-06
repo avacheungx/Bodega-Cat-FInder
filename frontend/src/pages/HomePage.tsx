@@ -4,7 +4,7 @@ import { MapPin, Heart, Clock, Upload, Search, Star } from 'lucide-react';
 
 export const HomePage: React.FC = () => {
   useEffect(() => {
-    console.log('HomePage loaded');
+    console.log('HomePage loaded - fresh deployment');
   }, []);
 
   return (
